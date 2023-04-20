@@ -22,7 +22,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	cli "github.com/urfave/cli/v2"
 
-	"github.com/NVIDIA/k8s-kata-manager/cmd/nv-oras/pull"
+	"github.com/NVIDIA/k8s-kata-manager/pkg/pull"
 )
 
 var logger = log.New()
