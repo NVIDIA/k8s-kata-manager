@@ -36,7 +36,7 @@ func main() {
 
 	// Create the top-level CLI
 	c := cli.NewApp()
-	c.Name = "nv-oras"
+	c.Name = "kata-manager"
 	c.Usage = "Tool for managing and NVIDIA OCI artifacts"
 	c.Version = "0.1.0"
 

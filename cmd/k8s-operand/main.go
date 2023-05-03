@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"syscall"
 
+	api "github.com/NVIDIA/k8s-kata-manager/api/v1alpha1/config"
 	k8scli "github.com/NVIDIA/k8s-kata-manager/internal/client-go"
 
 	cli "github.com/urfave/cli/v2"
@@ -44,27 +45,9 @@ type worker struct {
 	kubernetesNamespace string
 	stop                chan struct{} // channel for signaling stop
 
-	Config         *Config
+	Config         *api.Config
 	Namespace      string
 	ConfigFilePath string
-}
-
-type Config struct {
-	ArtifactsDir string `yaml:"artifactsDir"`
-	RuntimeClass []struct {
-		Name         string            `yaml:"name"`
-		NodeSelector map[string]string `yaml:"nodeSelector"`
-		Artifacts    struct {
-			URL        string `yaml:"url"`
-			PullSecret string `yaml:"pullSecret"`
-		} `yaml:"artifacts"`
-	} `yaml:"runtimeClass"`
-}
-
-func newDefaultConfig() *Config {
-	return &Config{
-		ArtifactsDir: "/opt/nvidia-gpu-operator/artifacts/runtimeclasses",
-	}
 }
 
 // newWorker returns a new worker struct
@@ -88,12 +71,12 @@ func main() {
 	c.Flags = []cli.Flag{
 		altsrc.NewIntFlag(
 			&cli.IntFlag{
-				Name:    "loglevel",
+				Name:    "log-level",
 				Usage:   "Set the logging level",
 				Aliases: []string{"l"},
 				Value:   1}),
 		&cli.StringFlag{
-			Name:        "configFile",
+			Name:        "config-file",
 			Aliases:     []string{"c"},
 			Usage:       "Path to the configuration file",
 			Destination: &worker.ConfigFilePath,
@@ -128,7 +111,7 @@ func main() {
 }
 
 func (w *worker) configure(filepath string) error {
-	c := newDefaultConfig()
+	c := api.NewDefaultConfig()
 
 	// Try to read and parse config file
 	if filepath != "" {

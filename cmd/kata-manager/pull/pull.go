@@ -122,7 +122,8 @@ func (m command) validateFlags(c *cli.Context, opts *options) error { return nil
 
 func (m command) run(c *cli.Context, opts *options) error {
 
-	art, err := oras.NewArtifact(c.Args().Get(0), opts.output)
+	ref := c.Args().Get(0)
+	art, err := oras.NewArtifact(ref, opts.output)
 	if err != nil {
 		return fmt.Errorf("failed to create oras artifact: %v", err)
 	}
@@ -132,13 +133,13 @@ func (m command) run(c *cli.Context, opts *options) error {
 		Password: opts.password,
 	}
 
-	fmt.Printf("Pulling %s...\n", c.Args().Get(0))
+	m.logger.Infof("Pulling %s...\n", ref)
 	manifest, err := art.Pull(creds)
 	if err != nil {
-		return fmt.Errorf("failed to pull %s: %v", c.Args().Get(0), err)
+		return fmt.Errorf("failed to pull %s: %v", ref, err)
 	}
 
-	m.logger.Infof("Successfully pulled %s", c.Args().Get(0))
+	m.logger.Infof("Successfully pulled %s", ref)
 	m.logger.Debugf("Manifest descriptor: %v", manifest)
 	return nil
 }
