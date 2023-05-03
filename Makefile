@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: all test  
-.FORCE:
+include $(CURDIR)/versions.mk
 
 MODULE := github.com/NVIDIA/k8s-kata-manager
 GOOS ?= linux
@@ -33,8 +32,6 @@ CONTAINER_RUN_CMD ?= docker run
 #BUILDER_IMAGE ?= golang:$(GO_VERSION)
 BASE_IMAGE_FULL ?= debian:bullseye-slim
 BASE_IMAGE_MINIMAL ?= gcr.io/distroless/base
-
-VERSION := $(shell git describe --tags --dirty --always)
 
 IMAGE_REGISTRY ?= nvidia
 IMAGE_TAG_NAME ?= $(VERSION)
@@ -143,6 +140,7 @@ $(DOCKER_TARGETS): docker-%: .build-image
 image:
 	$(IMAGE_BUILD_CMD) -t $(IMAGE_TAG) \
 		--build-arg GOLANG_VERSION=$(GOLANG_VERSION) \
+		--build-arg CUDA_VERSION=$(CUDA_VERSION) \
 		$(IMAGE_BUILD_EXTRA_OPTS) .
 
 push:

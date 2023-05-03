@@ -1,4 +1,4 @@
-# Copyright (c), NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,8 +13,8 @@
 # limitations under the License.
 
 ARG BASE_DIST=ubi8
-ARG CUDA_VERSION=12.0.0
-ARG GOLANG_VERSION=x.x.x
+ARG CUDA_VERSION
+ARG GOLANG_VERSION
 ARG VERSION="N/A"
 
 FROM golang:${GOLANG_VERSION} as builder
