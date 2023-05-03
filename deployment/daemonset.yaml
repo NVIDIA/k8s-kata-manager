@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  generation: 1
+  name: k8s-kata-manager
+spec:
+  selector:
+    matchLabels:
+      name: kata-enabled
+  template:
+    metadata:
+      labels:
+        name: cc-operator-daemon-install
+    spec:
+      containers:
+      - command:
+        - k8s-operand
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        - name: CONFIGURE_KATA
+          value: "yes"
+        - name: CONFIGURE_CC
+          value: "no"
+        image: <place-holder>
+        imagePullPolicy: Always
+        name: cc-runtime-install-pod
+        resources: {}
+        securityContext:
+          privileged: true
+          runAsUser: 0
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/containerd/
+          name: containerd-conf
+        - mountPath: /opt/nvidia-gpu-operator/
+          name: runtimeClass-artifacts
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        node-role.kubernetes.io/worker: ""
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: <place-holder>
+      serviceAccountName: <place-holder>
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - hostPath:
+          path: /etc/containerd/
+          type: ""
+        name: containerd-conf
+      - hostPath:
+          path: /opt/nvidia-gpu-operator/
+          type: DirectoryOrCreate
+        name: runtimeClass-artifacts
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate

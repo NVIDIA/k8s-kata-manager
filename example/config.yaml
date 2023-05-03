@@ -1,0 +1,23 @@
+# Sample kataManager configuration file
+artifactsDir: /opt/some/fictional/path
+runtimeClass:
+  - name: nvidia-gpu
+    nodeSelector:
+      nvidia.com/gpu.hopper: "true"
+    artifacts:
+      url: confidentialcontainers.azurecr.io/kata-nvidia-gpu-artifacts
+      pullSecret: my-k8s-secret
+  - name: nvidia-gpu-snp
+    nodeSelector:
+      nvidia.com/gpu.hopper: "true"
+      nvidia.com/snp.enabled: "true"
+    artifacts:
+      url: confidentialcontainers.azurecr.io/kata-nvidia-gpu-artifacts
+      pullSecret: my-k8s-secret
+  - name: nvidia-gpu-tdx
+    nodeSelector:
+      nvidia.com/gpu.hopper: "true"
+      nvidia.com/tdx.enabled: "true"
+    artifacts:
+      url: confidentialcontainers.azurecr.io/kata-nvidia-gpu-artifacts
+      pullSecret: my-k8s-secret

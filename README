@@ -1,0 +1,48 @@
+# K8s-Kata-manager
+
+## Description
+
+The k8s-kata-manager project provides a set of tools to configure Kata containerd RuntimeClass on via Kubernetes or directly using the CLI tool.
+
+### k8s-operand
+
+Program to configure Kata containerd RuntimeClass on Kubernetes.
+to  test run
+
+```bash
+make build-operand
+```
+
+k8s-operand is designed to run as a Kubernetes operand, it will watch for a configmap named `kata-config` in the `kata-system` namespace, and will configure the RuntimeClass based on the content of the configmap.
+
+### kata-manager
+
+CLI tool to configure Kata containerd RuntimeClass.
+
+to  test run
+
+```bash
+make build-cli
+```
+
+usage for the cli:
+
+```bash
+NAME:
+   nv-oras - Tool for managing and NVIDIA OCI artifacts
+
+USAGE:
+   nv-oras [global options] command [command options] [arguments...]
+
+VERSION:
+   0.1.0
+
+COMMANDS:
+   pull     Pull files from a remote registry
+   help, h  Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --debug, -d    Enable debug-level logging (default: false) [$DEBUG]
+   --help, -h     show help
+   --version, -v  print the version
+```

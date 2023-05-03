@@ -6,4 +6,7 @@ WORKDIR /workspace
 COPY . .
 
 # Build
-RUN make build GO_BUILD_ENV='CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH}'
+RUN make build-operand GO_BUILD_ENV='CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH}'
+RUN install -m 755 bin/k8s-operand /usr/local/bin/k8s-operand
+
+ENTRYPOINT [ "/usr/local/bin/k8s-operand" ]
