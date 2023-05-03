@@ -34,9 +34,17 @@ LDFLAGS ?=
 
 all: image
 
-build:
+build-all:
 	@mkdir -p bin
 	$(GO_CMD) build -v -o bin $(LDFLAGS) ./cmd/...
+
+build-operand:
+	@mkdir -p bin
+	$(GO_CMD) build -v -o bin $(LDFLAGS) ./cmd/k8s-operand/...
+
+build-cli:
+	@mkdir -p bin
+	$(GO_CMD) build -v -o bin $(LDFLAGS) ./cmd/kata-manager/...
 
 install:
 	$(GO_CMD) install -v $(LDFLAGS) ./cmd/...
