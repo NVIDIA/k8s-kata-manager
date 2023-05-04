@@ -14,6 +14,7 @@
 
 include $(CURDIR)/versions.mk
 
+##### Go variables #####
 MODULE := github.com/NVIDIA/k8s-kata-manager
 GOOS ?= linux
 LDFLAGS ?= -ldflags "-s -w"
@@ -23,29 +24,7 @@ GO_TEST_FLAGS ?= -race
 # Use go.mod go version as a single source of truth of GO version.
 GOLANG_VERSION := $(shell awk '/^go /{print $$2}' go.mod|head -n1)
 
-DOCKER ?= docker
-
-IMAGE_BUILD_CMD ?= docker build
-IMAGE_BUILD_EXTRA_OPTS ?=
-IMAGE_PUSH_CMD ?= docker push
-CONTAINER_RUN_CMD ?= docker run
-#BUILDER_IMAGE ?= golang:$(GO_VERSION)
-BASE_IMAGE_FULL ?= debian:bullseye-slim
-BASE_IMAGE_MINIMAL ?= gcr.io/distroless/base
-
-IMAGE_REGISTRY ?= nvidia
-IMAGE_TAG_NAME ?= $(VERSION)
-IMAGE_EXTRA_TAG_NAMES ?=
-
-IMAGE_NAME := k8s-kata-manager
-IMAGE_REPO := $(IMAGE_REGISTRY)/$(IMAGE_NAME)
-IMAGE_TAG := $(IMAGE_REPO):$(IMAGE_TAG_NAME)
-IMAGE_EXTRA_TAGS := $(foreach tag,$(IMAGE_EXTRA_TAG_NAMES),$(IMAGE_REPO):$(tag))
-
-KUBECONFIG ?= ${HOME}/.kube/config
-E2E_TEST_CONFIG ?=
-E2E_PULL_IF_NOT_PRESENT ?= false
-
+##### General make targets #####
 CMDS := $(patsubst ./cmd/%/,%,$(sort $(dir $(wildcard ./cmd/*/))))
 CMD_TARGETS := $(patsubst %,cmd-%, $(CMDS))
 
@@ -56,8 +35,43 @@ TARGETS := $(MAKE_TARGETS)
 DOCKER_TARGETS := $(pathsubst %, docker-%, $(TARGETS))
 .PHONY: $(TARGETS) $(DOCKER_TARGETS)
 
-all: image
+##### Container image variables #####
+BUILD_MULTI_ARCH_IMAGES ?= no
+DOCKER ?= docker
+BUILDX =
+ifeq ($(BUILD_MULTI_ARCH_IMAGES),true)
+BUILDX = buildx
+endif
 
+ifeq ($(IMAGE_NAME),)
+REGISTRY ?= nvidia
+IMAGE_NAME := $(REGISTRY)/k8s-kata-manager
+endif
+
+IMAGE_VERSION := $(VERSION)
+
+DIST ?= ubi8
+
+# Note: currently there is no need to build images for different distributions,
+# so the distribution is omitted from the tag
+#IMAGE_TAG ?= $(IMAGE_VERSION)-$(DIST)
+IMAGE_TAG ?= $(IMAGE_VERSION)
+IMAGE = $(IMAGE_NAME):$(IMAGE_TAG)
+
+OUT_IMAGE_NAME ?= $(IMAGE_NAME)
+OUT_IMAGE_VERSION ?= $(IMAGE_VERSION)
+#OUT_IMAGE_TAG = $(OUT_IMAGE_VERSION)-$(DIST)
+OUT_IMAGE_TAG = $(OUT_IMAGE_VERSION)
+OUT_IMAGE = $(OUT_IMAGE_NAME):$(OUT_IMAGE_TAG)
+
+##### Container image make targets #####
+# Note: currently there is no need to build images for different distributions.
+IMAGE_BUILD_TARGETS := build-image
+IMAGE_PUSH_TARGETS := push-image
+IMAGE_PULL_TARGETS := pull-image
+.PHONY: $(IMAGE_BUILD_TARGETS) $(IMAGE_PUSH_TARGETS)
+
+###### Target definitions #####
 cmds: $(CMD_TARGETS)
 $(CMD_TARGETS): cmd-%:
 	@mkdir -p bin
@@ -106,7 +120,7 @@ coverage: test
 	cat $(COVERAGE_FILE) | grep -v "_mock.go" > $(COVERAGE_FILE).no-mocks
 	$(GO_CMD) tool cover -func=$(COVERAGE_FILE).no-mocks
 
-# Targets used to build a golang devel container used in CI pipelines
+##### Devel image build and push targets #####
 .PHONY: .build-image .pull-build-image .push-build-image
 BUILDIMAGE ?= k8s-kata-manager-devel
 .build-image: Dockerfile.devel
@@ -136,23 +150,24 @@ $(DOCKER_TARGETS): docker-%: .build-image
 		$(BUILDIMAGE) \
 			make $(*)
 
-.PHONY: image
-image:
-	$(IMAGE_BUILD_CMD) -t $(IMAGE_TAG) \
-		--build-arg GOLANG_VERSION=$(GOLANG_VERSION) \
-		--build-arg CUDA_VERSION=$(CUDA_VERSION) \
-		$(IMAGE_BUILD_EXTRA_OPTS) .
+##### Image build and push targets #####
+build-image:
+	DOCKER_BUILDKIT=1 \
+		$(DOCKER) $(BUILDX) build --pull \
+			$(DOCKER_BUILD_OPTIONS) \
+			$(DOCKER_BUILD_PLATFORM_OPTIONS) \
+			--tag $(IMAGE) \
+			--build-arg BASE_DIST="$(DIST)" \
+			--build-arg CUDA_VERSION="$(CUDA_VERSION)" \
+			--build-arg GOLANG_VERSION="$(GOLANG_VERSION)" \
+			--build-arg VERSION="$(VERSION)" \
+			--build-arg CVE_UPDATES="$(CVE_UPDATES)" \
+			--file Dockerfile \
+			$(CURDIR)
 
-push:
-	$(IMAGE_PUSH_CMD) $(IMAGE_TAG)
-	$(IMAGE_PUSH_CMD) $(IMAGE_TAG)-minimal
-	$(IMAGE_PUSH_CMD) $(IMAGE_TAG)-full
-	for tag in $(IMAGE_EXTRA_TAGS); do \
-	    $(IMAGE_PUSH_CMD) $$tag; \
-	    $(IMAGE_PUSH_CMD) $$tag-minimal; \
-	    $(IMAGE_PUSH_CMD) $$tag-full; \
-	done
+push-image:
+	$(DOCKER) tag "$(IMAGE)" "$(OUT_IMAGE)"
+	$(DOCKER) push "$(OUT_IMAGE)"
 
-push-all: ensure-buildx yamls
-	$(IMAGE_BUILDX_CMD) --push $(IMAGE_BUILD_ARGS) $(IMAGE_BUILD_ARGS_FULL)
-	$(IMAGE_BUILDX_CMD) --push $(IMAGE_BUILD_ARGS) $(IMAGE_BUILD_ARGS_MINIMAL)
+pull-image:
+	$(DOCKER) pull "$(IMAGE)"
