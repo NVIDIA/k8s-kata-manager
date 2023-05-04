@@ -1,83 +1,172 @@
-.PHONY: all test  
-.FORCE:
+# Copyright (c) NVIDIA CORPORATION.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
+include $(CURDIR)/versions.mk
+
+##### Go variables #####
+MODULE := github.com/NVIDIA/k8s-kata-manager
+GOOS ?= linux
+LDFLAGS ?= -ldflags "-s -w"
 GO_CMD ?= go
 GO_FMT ?= gofmt
 GO_TEST_FLAGS ?= -race
 # Use go.mod go version as a single source of truth of GO version.
-GO_VERSION := $(shell awk '/^go /{print $$2}' go.mod|head -n1)
+GOLANG_VERSION := $(shell awk '/^go /{print $$2}' go.mod|head -n1)
 
-IMAGE_BUILD_CMD ?= docker build
-IMAGE_BUILD_EXTRA_OPTS ?=
-IMAGE_PUSH_CMD ?= docker push
-CONTAINER_RUN_CMD ?= docker run
-BUILDER_IMAGE ?= golang:$(GO_VERSION)
-BASE_IMAGE_FULL ?= debian:bullseye-slim
-BASE_IMAGE_MINIMAL ?= gcr.io/distroless/base
+##### General make targets #####
+CMDS := $(patsubst ./cmd/%/,%,$(sort $(dir $(wildcard ./cmd/*/))))
+CMD_TARGETS := $(patsubst %,cmd-%, $(CMDS))
 
-VERSION := $(shell git describe --tags --dirty --always)
+CHECK_TARGETS := assert-fmt vet lint ineffassign misspell
+MAKE_TARGETS := cmds build install fmt test coverage $(CHECK_TARGETS)
 
-IMAGE_REGISTRY ?= nvidia
-IMAGE_TAG_NAME ?= $(VERSION)
-IMAGE_EXTRA_TAG_NAMES ?=
+TARGETS := $(MAKE_TARGETS)
+DOCKER_TARGETS := $(pathsubst %, docker-%, $(TARGETS))
+.PHONY: $(TARGETS) $(DOCKER_TARGETS)
 
-IMAGE_NAME := k8s-kata-manager
-IMAGE_REPO := $(IMAGE_REGISTRY)/$(IMAGE_NAME)
-IMAGE_TAG := $(IMAGE_REPO):$(IMAGE_TAG_NAME)
-IMAGE_EXTRA_TAGS := $(foreach tag,$(IMAGE_EXTRA_TAG_NAMES),$(IMAGE_REPO):$(tag))
+##### Container image variables #####
+BUILD_MULTI_ARCH_IMAGES ?= no
+DOCKER ?= docker
+BUILDX =
+ifeq ($(BUILD_MULTI_ARCH_IMAGES),true)
+BUILDX = buildx
+endif
 
-KUBECONFIG ?= ${HOME}/.kube/config
-E2E_TEST_CONFIG ?=
-E2E_PULL_IF_NOT_PRESENT ?= false
+ifeq ($(IMAGE_NAME),)
+REGISTRY ?= nvidia
+IMAGE_NAME := $(REGISTRY)/k8s-kata-manager
+endif
 
-LDFLAGS ?=
+IMAGE_VERSION := $(VERSION)
 
-all: image
+DIST ?= ubi8
 
-build-all:
+# Note: currently there is no need to build images for different distributions,
+# so the distribution is omitted from the tag
+#IMAGE_TAG ?= $(IMAGE_VERSION)-$(DIST)
+IMAGE_TAG ?= $(IMAGE_VERSION)
+IMAGE = $(IMAGE_NAME):$(IMAGE_TAG)
+
+OUT_IMAGE_NAME ?= $(IMAGE_NAME)
+OUT_IMAGE_VERSION ?= $(IMAGE_VERSION)
+#OUT_IMAGE_TAG = $(OUT_IMAGE_VERSION)-$(DIST)
+OUT_IMAGE_TAG = $(OUT_IMAGE_VERSION)
+OUT_IMAGE = $(OUT_IMAGE_NAME):$(OUT_IMAGE_TAG)
+
+##### Container image make targets #####
+# Note: currently there is no need to build images for different distributions.
+IMAGE_BUILD_TARGETS := build-image
+IMAGE_PUSH_TARGETS := push-image
+IMAGE_PULL_TARGETS := pull-image
+.PHONY: $(IMAGE_BUILD_TARGETS) $(IMAGE_PUSH_TARGETS)
+
+###### Target definitions #####
+cmds: $(CMD_TARGETS)
+$(CMD_TARGETS): cmd-%:
 	@mkdir -p bin
-	$(GO_CMD) build -v -o bin $(LDFLAGS) ./cmd/...
+	GOOS=$(GOOS) $(GO_CMD) build -v -o bin $(LDLAGS) $(COMMAND_BUILD_OPTIONS) $(MODULE)/cmd/$(*)
 
-build-operand:
-	@mkdir -p bin
-	$(GO_CMD) build -v -o bin $(LDFLAGS) ./cmd/k8s-operand/...
-
-build-cli:
-	@mkdir -p bin
-	$(GO_CMD) build -v -o bin $(LDFLAGS) ./cmd/kata-manager/...
+build:
+	GOOS=$(GOOS) $(GO_CMD) build -v $(LDFLAGS) $(MODULE)/...
 
 install:
-	$(GO_CMD) install -v $(LDFLAGS) ./cmd/...
+	$(GO_CMD) install -v $(LDFLAGS) $(MODULE)/cmd/...
 
-.PHONY: image
-image:
-	$(IMAGE_BUILD_CMD) -t $(IMAGE_TAG) \
-		--build-arg BUILDER_IMAGE=$(BUILDER_IMAGE) \
-		$(IMAGE_BUILD_EXTRA_OPTS) .
+fmt:
+	$(GO_CMD) list -f '{{.Dir}}' $(MODULE)/... \
+		| xargs $(GO_FMT) -s -l -w
 
-gofmt:
-	@$(GO_FMT) -w -l $$(find . -name '*.go')
-
-gofmt-verify:
-	@out=`$(GO_FMT) -w -l -d $$(find . -name '*.go')`; \
-	if [ -n "$$out" ]; then \
-	    echo "$$out"; \
-	    exit 1; \
+assert-fmt:
+	$(GO_CMD) list -f '{{.Dir}}' $(MODULE)/... \
+		| xargs $(GO_FMT) -s -l | ( grep -v /vendor/ || true ) > fmt.out
+	@if [ -s fmt.out ]; then \
+		echo "\nERROR: The following files are not formatted:\n"; \
+		cat fmt.out; \
+		rm fmt.out; \
+		exit 1; \
+	else \
+		rm fmt.out; \
 	fi
 
-test:
-	$(GO_CMD) test -covermode=atomic -coverprofile=coverage.out ./cmd/... ./pkg/...
+ineffassign:
+	ineffassign $(MODULE)/...
 
-push:
-	$(IMAGE_PUSH_CMD) $(IMAGE_TAG)
-	$(IMAGE_PUSH_CMD) $(IMAGE_TAG)-minimal
-	$(IMAGE_PUSH_CMD) $(IMAGE_TAG)-full
-	for tag in $(IMAGE_EXTRA_TAGS); do \
-	    $(IMAGE_PUSH_CMD) $$tag; \
-	    $(IMAGE_PUSH_CMD) $$tag-minimal; \
-	    $(IMAGE_PUSH_CMD) $$tag-full; \
-	done
+lint:
+	golangci-lint run --timeout 7m0s
 
-push-all: ensure-buildx yamls
-	$(IMAGE_BUILDX_CMD) --push $(IMAGE_BUILD_ARGS) $(IMAGE_BUILD_ARGS_FULL)
-	$(IMAGE_BUILDX_CMD) --push $(IMAGE_BUILD_ARGS) $(IMAGE_BUILD_ARGS_MINIMAL)
+misspell:
+	misspell $(MODULE)/...
+
+vet:
+	$(GO_CMD) vet $(MODULE)/...
+
+COVERAGE_FILE := coverage.out
+test: build
+	$(GO_CMD) test -v -coverprofile=$(COVERAGE_FILE) $(MODULE)/...
+
+coverage: test
+	cat $(COVERAGE_FILE) | grep -v "_mock.go" > $(COVERAGE_FILE).no-mocks
+	$(GO_CMD) tool cover -func=$(COVERAGE_FILE).no-mocks
+
+##### Devel image build and push targets #####
+.PHONY: .build-image .pull-build-image .push-build-image
+BUILDIMAGE ?= k8s-kata-manager-devel
+.build-image: Dockerfile.devel
+	if [ x"$(SKIP_IMAGE_BUILD)" = x"" ]; then \
+		$(DOCKER) build \
+			--progress=plain \
+			--build-arg GOLANG_VERSION="$(GOLANG_VERSION)" \
+			--tag $(BUILDIMAGE) \
+			-f $(^) \
+			.; \
+	fi
+
+.pull-build-image:
+	$(DOCKER) pull $(BUILDIMAGE)
+
+.push-build-image:
+	$(DOCKER) push $(BUILDIMAGE)
+
+$(DOCKER_TARGETS): docker-%: .build-image
+	@echo "Running 'make $(*)' in docker container $(BUILDIMAGE)"
+	$(DOCKER) run \
+		--rm \
+		-e GOCACHE=/tmp/.cache \
+		-v $(PWD):$(PWD) \
+		-w $(PWD) \
+		--user $$(id -u):$$(id -g) \
+		$(BUILDIMAGE) \
+			make $(*)
+
+##### Image build and push targets #####
+build-image:
+	DOCKER_BUILDKIT=1 \
+		$(DOCKER) $(BUILDX) build --pull \
+			$(DOCKER_BUILD_OPTIONS) \
+			$(DOCKER_BUILD_PLATFORM_OPTIONS) \
+			--tag $(IMAGE) \
+			--build-arg BASE_DIST="$(DIST)" \
+			--build-arg CUDA_VERSION="$(CUDA_VERSION)" \
+			--build-arg GOLANG_VERSION="$(GOLANG_VERSION)" \
+			--build-arg VERSION="$(VERSION)" \
+			--build-arg CVE_UPDATES="$(CVE_UPDATES)" \
+			--file Dockerfile \
+			$(CURDIR)
+
+push-image:
+	$(DOCKER) tag "$(IMAGE)" "$(OUT_IMAGE)"
+	$(DOCKER) push "$(OUT_IMAGE)"
+
+pull-image:
+	$(DOCKER) pull "$(IMAGE)"
