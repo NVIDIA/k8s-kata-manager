@@ -33,6 +33,11 @@ stages:
   - scan
   - release
 
+# Define the platform targets
+.platform-amd64:
+  variables:
+    PLATFORM: linux/amd64
+
 # Make buildx available as a docker CLI plugin
 .buildx-setup:
   before_script:
@@ -88,3 +93,12 @@ release:staging:
     OUT_IMAGE_NAME: "${CI_REGISTRY_IMAGE}/staging/k8s-kata-manager"
   needs:
     - image-build
+
+# Define an external release step that pushes an image to an external repository.
+.release:external:
+  extends:
+    - .release
+  rules:
+    - if: $CI_COMMIT_TAG
+      variables:
+        OUT_IMAGE_VERSION: "${CI_COMMIT_TAG}"
