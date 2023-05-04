@@ -38,6 +38,7 @@ type Artifact struct {
 	output string
 }
 
+// NewArtifact returns a new instance of Artifact
 func NewArtifact(ref string, output string) (*Artifact, error) {
 	var registry, repository, tag string
 
@@ -65,7 +66,8 @@ func NewArtifact(ref string, output string) (*Artifact, error) {
 	}, nil
 }
 
-func (a Artifact) Pull(creds auth.Credential) (ocispec.Descriptor, error) {
+// Pull pulls the artifact from the remote repository into a local path
+func (a *Artifact) Pull(creds auth.Credential) (ocispec.Descriptor, error) {
 	// Create a file store
 	fs, err := file.New(a.output)
 	if err != nil {
