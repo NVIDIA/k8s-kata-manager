@@ -54,7 +54,7 @@ func (m command) build() *cli.Command {
 		Usage:     "Pull files from a remote registry",
 		UsageText: "nv-oras pull [flags] <name>{:<tag>|@<digest>}",
 		Before: func(c *cli.Context) error {
-			err := m.validateArgs(c, &opts)
+			err := m.validateArgs(c)
 			if err != nil {
 				return fmt.Errorf("failed to parse arguments: %v", err)
 			}
@@ -100,7 +100,7 @@ func (m command) build() *cli.Command {
 	return &c
 }
 
-func (m command) validateArgs(c *cli.Context, opts *options) error {
+func (m command) validateArgs(c *cli.Context) error {
 	if c.Args().Len() != 1 {
 		return fmt.Errorf("unexpected number of positional arguments")
 	}
@@ -118,7 +118,7 @@ func (m command) validateArgs(c *cli.Context, opts *options) error {
 	return nil
 }
 
-func (m command) validateFlags(c *cli.Context, opts *options) error { return nil }
+func (m command) validateFlags(_ *cli.Context, _ *options) error { return nil }
 
 func (m command) run(c *cli.Context, opts *options) error {
 
