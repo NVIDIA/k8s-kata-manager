@@ -103,8 +103,7 @@ ineffassign:
 	ineffassign $(MODULE)/...
 
 lint:
-# We use `go list -f '{{.Dir}}' $(MODULE)/...` to skip the `vendor` folder.
-	$(GO_CMD) list -f '{{.Dir}}' $(MODULE)/... | xargs golint -set_exit_status
+	golangci-lint run --timeout 7m0s
 
 misspell:
 	misspell $(MODULE)/...
