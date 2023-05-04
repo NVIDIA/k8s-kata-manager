@@ -29,7 +29,8 @@ import (
 	"oras.land/oras-go/v2/registry/remote/retry"
 )
 
-type artifact struct {
+// Artifact struc holds the information about the oras artifact
+type Artifact struct {
 	registry   string
 	repository string
 	tag        string
@@ -37,7 +38,7 @@ type artifact struct {
 	output string
 }
 
-func NewArtifact(ref string, output string) (*artifact, error) {
+func NewArtifact(ref string, output string) (*Artifact, error) {
 	var registry, repository, tag string
 
 	refSplit := strings.Split(ref, "/")
@@ -56,7 +57,7 @@ func NewArtifact(ref string, output string) (*artifact, error) {
 		return nil, fmt.Errorf("unable to parse tag or digest")
 	}
 
-	return &artifact{
+	return &Artifact{
 		registry:   registry,
 		repository: repository,
 		tag:        tag,
@@ -64,7 +65,7 @@ func NewArtifact(ref string, output string) (*artifact, error) {
 	}, nil
 }
 
-func (a artifact) Pull(creds auth.Credential) (ocispec.Descriptor, error) {
+func (a Artifact) Pull(creds auth.Credential) (ocispec.Descriptor, error) {
 	// Create a file store
 	fs, err := file.New(a.output)
 	if err != nil {

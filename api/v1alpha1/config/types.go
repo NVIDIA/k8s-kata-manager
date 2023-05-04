@@ -16,12 +16,14 @@
 
 package config
 
+// NewDefaultConfig returns a new default config.
 func NewDefaultConfig() *Config {
 	return &Config{
 		ArtifactsDir: "/opt/nvidia-gpu-operator/artifacts/runtimeclasses",
 	}
 }
 
+// Config is the configuration for the k8s-kata runtimeclass.
 type Config struct {
 	ArtifactsDir string `yaml:"artifactsDir"`
 	RuntimeClass []struct {

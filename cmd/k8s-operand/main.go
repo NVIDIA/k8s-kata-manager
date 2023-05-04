@@ -146,7 +146,7 @@ func newOSWatcher(sigs ...os.Signal) chan os.Signal {
 	return sigChan
 }
 
-func (w *worker) Run(c *cli.Context) error {
+func (w *worker) Run(_ *cli.Context) error {
 	defer func() {
 		klog.Info("Exiting")
 	}()
