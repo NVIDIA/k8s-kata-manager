@@ -15,6 +15,18 @@ make build-operand
 
 k8s-operand is designed to run as a Kubernetes operand, it will watch for a configmap named `kata-config` in the `kata-system` namespace, and will configure the RuntimeClass based on the content of the configmap.
 
+first create a secret to be able to pull the payload images:
+
+```bash
+kubectl create secret docker-registry regcred --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword> --docker-email=<your-email>
+```
+
+Then create the configmap:
+
+```bash
+kubectl create configmap kata-config --from-file=./example/configmap.yaml
+```
+
 ### kata-manager
 
 CLI tool to configure Kata containerd RuntimeClass.

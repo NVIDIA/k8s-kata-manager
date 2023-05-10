@@ -27,10 +27,13 @@ import (
 
 var nodeName string
 
-func NewClient(namespace string) *coreV1Types.SecretInterface {
-	// API client for managing secrets
-	var secretsClient coreV1Types.SecretInterface
+type k8scli struct {
+	coreV1Types.SecretInterface
 
+	namespace string
+}
+
+func NewClient(namespace string) k8scli {
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -41,8 +44,12 @@ func NewClient(namespace string) *coreV1Types.SecretInterface {
 	if err != nil {
 		panic(err.Error())
 	}
-	secretsClient = clientset.CoreV1().Secrets(namespace)
-	return &secretsClient
+
+	k := k8scli{
+		clientset.CoreV1().Secrets(namespace),
+		namespace}
+	return k
+
 }
 
 // NodeName returns the name of the k8s node we're running on.
