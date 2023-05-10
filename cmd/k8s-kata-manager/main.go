@@ -198,6 +198,15 @@ func (w *worker) Run(clictxt *cli.Context) error {
 			return err
 		}
 
+		kataConfigCandidates, err := filepath.Glob(filepath.Join(rcDir, "*.toml"))
+		if err != nil {
+			return fmt.Errorf("error searching for kata config file: %v", err)
+		}
+		if len(kataConfigCandidates) == 0 {
+			return fmt.Errorf("no kata config file found for runtime class %s", rc.Name)
+		}
+		kataConfigPath := kataConfigCandidates[0]
+
 		ctrdConfig, err := containerd.New(
 			containerd.WithPath(defaultContainerdConfigFilePath),
 			containerd.WithPodAnnotations("io.katacontainers.*"),
@@ -216,7 +225,7 @@ func (w *worker) Run(clictxt *cli.Context) error {
 		ctrdConfig.RuntimeType = fmt.Sprintf("io.containerd.%s.v2", runtime)
 		err = ctrdConfig.AddRuntime(
 			runtime,
-			rcDir,
+			kataConfigPath,
 			setAsDefault,
 		)
 		if err != nil {
