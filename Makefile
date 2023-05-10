@@ -14,7 +14,7 @@
 
 include $(CURDIR)/versions.mk
 
-VERSION := $(shell git describe --tags --dirty --always)
+GIT_COMMIT := $(shell git describe --tags --dirty --always)
 
 ##### Go variables #####
 MODULE := github.com/NVIDIA/k8s-kata-manager
@@ -22,7 +22,7 @@ GOOS ?= linux
 GO_CMD ?= go
 GO_FMT ?= gofmt
 GO_TEST_FLAGS ?= -race
-LDFLAGS = -ldflags "-s -w -X github.com/NVIDIA/k8s-kata-manager/internal/version.version=$(VERSION)"
+LDFLAGS = -ldflags "-s -w -X github.com/NVIDIA/k8s-kata-manager/internal/version.version=$(GIT_COMMIT)"
 # Use go.mod go version as a single source of truth of GO version.
 GOLANG_VERSION := $(shell awk '/^go /{print $$2}' go.mod|head -n1)
 

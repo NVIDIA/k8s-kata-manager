@@ -23,6 +23,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 
 	api "github.com/NVIDIA/k8s-kata-manager/api/v1alpha1/config"
@@ -206,11 +207,17 @@ func (w *worker) Run(clictxt *cli.Context) error {
 			return err
 		}
 
-		ctrdConfig.RuntimeType = fmt.Sprintf("io.containerd.kata-qemu-%s.v2", rc.Name)
+		var setAsDefault bool
+		if strings.EqualFold(rc.SetAsDefault, "true") {
+			setAsDefault = true
+		}
+
+		runtime := fmt.Sprintf("kata-qemu-%s", rc.Name)
+		ctrdConfig.RuntimeType = fmt.Sprintf("io.containerd.%s.v2", runtime)
 		err = ctrdConfig.AddRuntime(
-			rc.Name,
+			runtime,
 			rcDir,
-			true,
+			setAsDefault,
 		)
 		if err != nil {
 			return fmt.Errorf("unable to update config: %v", err)
@@ -226,6 +233,7 @@ func (w *worker) Run(clictxt *cli.Context) error {
 		} else {
 			klog.Infof("Wrote updated config to %v", defaultContainerdConfigFilePath)
 		}
+		// TODO Reload containerd
 	}
 
 	// TODO: clean up on exit

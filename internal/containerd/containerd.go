@@ -117,10 +117,14 @@ func (c *Config) RemoveRuntime(name string) error {
 
 	config := *c.Tree
 
-	config.DeletePath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "runtimes", name})
+	if err := config.DeletePath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "runtimes", name}); err != nil {
+		return err
+	}
 	if runtime, ok := config.GetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "default_runtime_name"}).(string); ok {
 		if runtime == name {
-			config.DeletePath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "default_runtime_name"})
+			if err := config.DeletePath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "default_runtime_name"}); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -128,13 +132,18 @@ func (c *Config) RemoveRuntime(name string) error {
 	for i := 0; i < len(runtimePath); i++ {
 		if runtimes, ok := config.GetPath(runtimePath[:len(runtimePath)-i]).(*toml.Tree); ok {
 			if len(runtimes.Keys()) == 0 {
-				config.DeletePath(runtimePath[:len(runtimePath)-i])
+				if err := config.DeletePath(runtimePath[:len(runtimePath)-i]); err != nil {
+					return err
+				}
+
 			}
 		}
 	}
 
 	if len(config.Keys()) == 1 && config.Keys()[0] == "version" {
-		config.Delete("version")
+		if err := config.Delete("version"); err != nil {
+			return err
+		}
 	}
 
 	*c.Tree = config

@@ -10,8 +10,8 @@ data:
         setAsDefault: "true"
         artifacts:
           url: stg.nvcr.io/nvidia/cloud-native/kata-gpu-artifacts:ubuntu22.04-535
-          pullSecret: my-k8s-secret
+          pullSecret: <my-k8s-secret>
 kind: ConfigMap
 metadata:
   name: kata-manager-conf
-  namespace: default  
+  namespace: default

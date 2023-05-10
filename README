@@ -18,7 +18,7 @@ k8s-operand is designed to run as a Kubernetes operand, it will watch for a conf
 first create a secret to be able to pull the payload images:
 
 ```bash
-kubectl create secret docker-registry regcred --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword> --docker-email=<your-email>
+kubectl create secret docker-registry <my-k8s-secret> --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword> --docker-email=<your-email>
 ```
 
 Then create the configmap:

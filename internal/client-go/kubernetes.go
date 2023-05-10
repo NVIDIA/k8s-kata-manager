@@ -49,7 +49,6 @@ func NewClient(namespace string) k8scli {
 		clientset.CoreV1().Secrets(namespace),
 		namespace}
 	return k
-
 }
 
 // NodeName returns the name of the k8s node we're running on.
