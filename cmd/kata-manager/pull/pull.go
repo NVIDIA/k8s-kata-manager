@@ -127,6 +127,7 @@ func (m command) run(c *cli.Context, opts *options) error {
 	if err != nil {
 		return fmt.Errorf("failed to create oras artifact: %v", err)
 	}
+	m.logger.Infof("Artifact: %v", art)
 
 	creds := auth.Credential{
 		Username: opts.username,

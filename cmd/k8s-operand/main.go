@@ -21,18 +21,26 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 
 	api "github.com/NVIDIA/k8s-kata-manager/api/v1alpha1/config"
 	k8scli "github.com/NVIDIA/k8s-kata-manager/internal/client-go"
+	"github.com/NVIDIA/k8s-kata-manager/internal/containerd"
+	"github.com/NVIDIA/k8s-kata-manager/internal/oras"
+	version "github.com/NVIDIA/k8s-kata-manager/internal/version"
 
 	cli "github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 
-	"k8s.io/client-go/pkg/version"
 	klog "k8s.io/klog/v2"
 	yaml "sigs.k8s.io/yaml"
+)
+
+const (
+	defaultContainerdConfigFilePath = "/etc/containerd/config.toml"
 )
 
 // Worker is the interface for k8s-kata-manager daemon
@@ -42,8 +50,7 @@ type Worker interface {
 }
 
 type worker struct {
-	kubernetesNamespace string
-	stop                chan struct{} // channel for signaling stop
+	stop chan struct{} // channel for signaling stop
 
 	Config         *api.Config
 	Namespace      string
@@ -77,6 +84,7 @@ func main() {
 				Value:   1}),
 		&cli.StringFlag{
 			Name:        "config-file",
+			Value:       "/etc/kubernetes/kata-manager/config.yaml", // Default value
 			Aliases:     []string{"c"},
 			Usage:       "Path to the configuration file",
 			Destination: &worker.ConfigFilePath,
@@ -146,7 +154,7 @@ func newOSWatcher(sigs ...os.Signal) chan os.Signal {
 	return sigChan
 }
 
-func (w *worker) Run(_ *cli.Context) error {
+func (w *worker) Run(clictxt *cli.Context) error {
 	defer func() {
 		klog.Info("Exiting")
 	}()
@@ -156,15 +164,76 @@ func (w *worker) Run(_ *cli.Context) error {
 
 	klog.Infof("K8s-kata-manager Worker %s", version.Get())
 	klog.Infof("NodeName: '%s'", k8scli.NodeName())
-	klog.Infof("Kubernetes namespace: '%s'", w.kubernetesNamespace)
+	klog.Infof("Kubernetes namespace: '%s'", w.Namespace)
 
 	if err := w.configure(w.ConfigFilePath); err != nil {
 		return err
 	}
 
+	//TODO move to subcommand or internal.pkg
+	k8scli := k8scli.NewClient(w.Namespace)
+
 	for _, rc := range w.Config.RuntimeClass {
-		klog.Infof("RuntimeClass: '%s'", rc.Name)
-		// TODO create an Artifact, pull and configure containerd
+		creds, err := k8scli.GetCredentials(rc, w.Namespace)
+		if err != nil {
+			klog.Errorf("error getting credentials: %s", err)
+			return err
+		}
+		rcDir := filepath.Join(w.Config.ArtifactsDir, rc.Name)
+		if _, err := os.Stat(rcDir); os.IsNotExist(err) {
+			err := os.Mkdir(rcDir, 0755)
+			if err != nil {
+				klog.Errorf("error creating artifact directory: %s", err)
+				return err
+			}
+		}
+		a, err := oras.NewArtifact(rc.Artifacts.URL, rcDir)
+		if err != nil {
+			klog.Errorf("error creating artifact: %s", err)
+			return err
+		}
+		_, err = a.Pull(creds)
+		if err != nil {
+			klog.Errorf("error pulling artifact: %s", err)
+			return err
+		}
+
+		ctrdConfig, err := containerd.New(
+			containerd.WithPath(defaultContainerdConfigFilePath),
+			containerd.WithPodAnnotations("io.katacontainers.*"),
+		)
+		if err != nil {
+			klog.Errorf("error creating containerd.config client : %s", err)
+			return err
+		}
+
+		var setAsDefault bool
+		if strings.EqualFold(rc.SetAsDefault, "true") {
+			setAsDefault = true
+		}
+
+		runtime := fmt.Sprintf("kata-qemu-%s", rc.Name)
+		ctrdConfig.RuntimeType = fmt.Sprintf("io.containerd.%s.v2", runtime)
+		err = ctrdConfig.AddRuntime(
+			runtime,
+			rcDir,
+			setAsDefault,
+		)
+		if err != nil {
+			return fmt.Errorf("unable to update config: %v", err)
+		}
+
+		n, err := ctrdConfig.Save(defaultContainerdConfigFilePath)
+		if err != nil {
+			return fmt.Errorf("unable to flush config: %v", err)
+		}
+
+		if n == 0 {
+			klog.Infof("Removed empty config from %v", defaultContainerdConfigFilePath)
+		} else {
+			klog.Infof("Wrote updated config to %v", defaultContainerdConfigFilePath)
+		}
+		// TODO Reload containerd
 	}
 
 	// TODO: clean up on exit

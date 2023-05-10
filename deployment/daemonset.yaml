@@ -6,12 +6,15 @@ metadata:
 spec:
   selector:
     matchLabels:
-      name: kata-enabled
+      name: kata-manager
   template:
     metadata:
       labels:
-        name: cc-operator-daemon-install
+        name: kata-manager
     spec:
+      serviceAccountName: kata-manager-sa
+      imagePullSecrets:
+      - name: ghcrcred
       containers:
       - command:
         - k8s-operand
@@ -25,7 +28,7 @@ spec:
           value: "yes"
         - name: CONFIGURE_CC
           value: "no"
-        image: <place-holder>
+        image: ghcr.io/arangogutierrez/kkm:mark2
         imagePullPolicy: Always
         name: cc-runtime-install-pod
         resources: {}
@@ -37,27 +40,27 @@ spec:
         volumeMounts:
         - mountPath: /etc/containerd/
           name: containerd-conf
-        - mountPath: /opt/nvidia-gpu-operator/
-          name: runtimeClass-artifacts
+        - mountPath: /opt/nvidia-gpu-operator/artifacts/runtimeclasses/
+          name: runtimeclass-artifacts
+        - name: kata-manager-conf
+          mountPath: "/etc/kubernetes/kata-manager/"
+          readOnly: true
       dnsPolicy: ClusterFirst
       nodeSelector:
         node-role.kubernetes.io/worker: ""
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext: {}
-      serviceAccount: <place-holder>
-      serviceAccountName: <place-holder>
       terminationGracePeriodSeconds: 30
       volumes:
+      - name: kata-manager-conf
+        configMap:
+          name: kata-manager-conf
       - hostPath:
           path: /etc/containerd/
           type: ""
         name: containerd-conf
       - hostPath:
-          path: /opt/nvidia-gpu-operator/
+          path: /opt/nvidia-gpu-operator/artifacts/runtimeclasses/
           type: DirectoryOrCreate
-        name: runtimeClass-artifacts
-    rollingUpdate:
-      maxSurge: 0
-      maxUnavailable: 1
-    type: RollingUpdate
+        name: runtimeclass-artifacts

@@ -25,13 +25,16 @@ func NewDefaultConfig() *Config {
 
 // Config is the configuration for the k8s-kata runtimeclass.
 type Config struct {
-	ArtifactsDir string `yaml:"artifactsDir"`
-	RuntimeClass []struct {
-		Name         string            `yaml:"name"`
-		NodeSelector map[string]string `yaml:"nodeSelector"`
-		Artifacts    struct {
-			URL        string `yaml:"url"`
-			PullSecret string `yaml:"pullSecret"`
-		} `yaml:"artifacts"`
-	} `yaml:"runtimeClass"`
+	ArtifactsDir string         `yaml:"artifactsDir"`
+	RuntimeClass []RuntimeClass `yaml:"runtimeClass"`
+}
+
+type RuntimeClass struct {
+	Name         string            `yaml:"name"`
+	NodeSelector map[string]string `yaml:"nodeSelector"`
+	SetAsDefault string            `yaml:"setAsDefault"`
+	Artifacts    struct {
+		URL        string `yaml:"url"`
+		PullSecret string `yaml:"pullSecret"`
+	} `yaml:"artifacts"`
 }

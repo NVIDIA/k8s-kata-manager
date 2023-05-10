@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"strings"
 
+	utils "github.com/NVIDIA/k8s-kata-manager/internal/utils"
+
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	oras "oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
@@ -31,22 +33,21 @@ import (
 
 // Artifact struc holds the information about the oras artifact
 type Artifact struct {
-	registry   string
-	repository string
-	tag        string
+	Registry   string
+	Repository string
+	Tag        string
 
-	output string
+	Output string
 }
 
 // NewArtifact returns a new instance of Artifact
 func NewArtifact(ref string, output string) (*Artifact, error) {
-	var registry, repository, tag string
+	var repository, tag string
 
-	refSplit := strings.Split(ref, "/")
-	if len(refSplit) == 0 {
-		return nil, fmt.Errorf("unable to parse the registry")
+	registry, err := utils.ParseRegistry(ref)
+	if err != nil {
+		return nil, err
 	}
-	registry = refSplit[0]
 
 	if idx := strings.LastIndex(ref, "@"); idx != -1 {
 		repository = ref[:idx]
@@ -59,17 +60,17 @@ func NewArtifact(ref string, output string) (*Artifact, error) {
 	}
 
 	return &Artifact{
-		registry:   registry,
-		repository: repository,
-		tag:        tag,
-		output:     output,
+		Registry:   registry,
+		Repository: repository,
+		Tag:        tag,
+		Output:     output,
 	}, nil
 }
 
 // Pull pulls the artifact from the remote repository into a local path
 func (a *Artifact) Pull(creds auth.Credential) (ocispec.Descriptor, error) {
 	// Create a file store
-	fs, err := file.New(a.output)
+	fs, err := file.New(a.Output)
 	if err != nil {
 		return ocispec.Descriptor{}, err
 	}
@@ -77,22 +78,20 @@ func (a *Artifact) Pull(creds auth.Credential) (ocispec.Descriptor, error) {
 
 	// Connect to a remote repository
 	ctx := context.Background()
-	repo, err := remote.NewRepository(a.repository)
+	repo, err := remote.NewRepository(a.Repository)
 	if err != nil {
 		return ocispec.Descriptor{}, err
 	}
 
-	if creds.Username != "" && creds.Password != "" {
-		repo.Client = &auth.Client{
-			Client: retry.DefaultClient,
-			Cache:  auth.DefaultCache,
-			Credential: auth.StaticCredential(a.registry, auth.Credential{
-				Username: creds.Username,
-				Password: creds.Password,
-			}),
-		}
+	repo.Client = &auth.Client{
+		Client: retry.DefaultClient,
+		Cache:  auth.DefaultCache,
+		Credential: auth.StaticCredential(a.Registry, auth.Credential{
+			Username: creds.Username,
+			Password: creds.Password,
+		}),
 	}
 
 	// Copy from the remote repository to the file store
-	return oras.Copy(ctx, repo, a.tag, fs, a.tag, oras.DefaultCopyOptions)
+	return oras.Copy(ctx, repo, a.Tag, fs, a.Tag, oras.DefaultCopyOptions)
 }
