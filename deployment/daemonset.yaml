@@ -16,8 +16,7 @@ spec:
       imagePullSecrets:
       - name: ghcrcred
       containers:
-      - command:
-        - k8s-operand
+      - command: ["k8s-kata-manager"]
         env:
         - name: NODE_NAME
           valueFrom:
