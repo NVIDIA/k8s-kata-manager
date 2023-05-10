@@ -27,7 +27,6 @@ import (
 
 	api "github.com/NVIDIA/k8s-kata-manager/api/v1alpha1/config"
 	k8scli "github.com/NVIDIA/k8s-kata-manager/internal/client-go"
-	kubernetes "github.com/NVIDIA/k8s-kata-manager/internal/client-go"
 	"github.com/NVIDIA/k8s-kata-manager/internal/containerd"
 	"github.com/NVIDIA/k8s-kata-manager/internal/oras"
 	version "github.com/NVIDIA/k8s-kata-manager/internal/version"
@@ -171,7 +170,7 @@ func (w *worker) Run(clictxt *cli.Context) error {
 	}
 
 	//TODO move to subcommand or internal.pkg
-	k8scli := kubernetes.NewClient(w.Namespace)
+	k8scli := k8scli.NewClient(w.Namespace)
 
 	for _, rc := range w.Config.RuntimeClass {
 		creds, err := k8scli.GetCredentials(rc, w.Namespace)
