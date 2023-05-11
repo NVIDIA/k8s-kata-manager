@@ -22,6 +22,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	cli "github.com/urfave/cli/v2"
 
+	"github.com/NVIDIA/k8s-kata-manager/cmd/kata-manager/containerd"
 	"github.com/NVIDIA/k8s-kata-manager/cmd/kata-manager/pull"
 )
 
@@ -64,6 +65,7 @@ func main() {
 	// Define the subcommands
 	c.Commands = []*cli.Command{
 		pull.NewCommand(logger),
+		containerd.NewCommand(logger),
 	}
 
 	err := c.Run(os.Args)

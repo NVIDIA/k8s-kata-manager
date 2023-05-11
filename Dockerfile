@@ -27,6 +27,7 @@ RUN make cmds GO_BUILD_ENV='CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH}'
 
 FROM nvcr.io/nvidia/cuda:${CUDA_VERSION}-base-${BASE_DIST}
 COPY --from=builder /build/bin/k8s-kata-manager /usr/local/bin/k8s-kata-manager
+COPY --from=builder /build/bin/kata-manager /usr/local/bin/kata-manager
 
 LABEL version="${VERSION}"
 LABEL release="N/A"

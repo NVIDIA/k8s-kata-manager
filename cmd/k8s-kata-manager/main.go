@@ -20,6 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strconv"
@@ -254,14 +255,10 @@ func (w *worker) Run(clictxt *cli.Context) error {
 	}
 
 	klog.Infof("Restarting containerd")
-	if err := containerd.RestartContainerd(w.ContainerdSocket); err != nil {
+	if err := restartContainerd(w.ContainerdSocket); err != nil {
 		return fmt.Errorf("unable to restart containerd: %v", err)
 	}
 	klog.Info("containerd successfully restarted")
-
-	//	if err := os.Symlink(); err != nil {
-	//		return fmt.Errorf("unable to symlink %v to %v: %v", , , err)
-	//	}
 
 	if err := waitForSignal(); err != nil {
 		return fmt.Errorf("unable to wait for signal: %v", err)
@@ -303,6 +300,21 @@ func initialize() error {
 			os.Exit(0)
 		}
 	}()
+
+	return nil
+}
+
+func restartContainerd(containerdSocket string) error {
+	command := "/usr/local/bin/kata-manager"
+	args := []string{"containerd", containerdSocket}
+
+	cmd := exec.Command(command, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("error restarting containerd: %v", err)
+	}
 
 	return nil
 }
