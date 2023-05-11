@@ -23,7 +23,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"syscall"
 
 	api "github.com/NVIDIA/k8s-kata-manager/api/v1alpha1/config"
@@ -31,6 +30,7 @@ import (
 	"github.com/NVIDIA/k8s-kata-manager/internal/containerd"
 	"github.com/NVIDIA/k8s-kata-manager/internal/oras"
 	version "github.com/NVIDIA/k8s-kata-manager/internal/version"
+	"golang.org/x/sys/unix"
 
 	cli "github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
@@ -40,9 +40,13 @@ import (
 )
 
 const (
+	pidFile                         = "/opt/nvidia-gpu-operator/artifacts/runtimeclasses/k8s-kata-manager.pid"
 	defaultContainerdConfigFilePath = "/etc/containerd/config.toml"
 	defaultContainerdSocketFilePath = "/run/containerd/containerd.sock"
 )
+
+var waitingForSignal = make(chan bool, 1)
+var signalReceived = make(chan bool, 1)
 
 // Worker is the interface for k8s-kata-manager daemon
 type Worker interface {
@@ -51,8 +55,6 @@ type Worker interface {
 }
 
 type worker struct {
-	stop chan struct{} // channel for signaling stop
-
 	Config         *api.Config
 	Namespace      string
 	ConfigFilePath string
@@ -165,20 +167,10 @@ func (w *worker) configure(filepath string) error {
 	return nil
 }
 
-func newOSWatcher(sigs ...os.Signal) chan os.Signal {
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, sigs...)
-
-	return sigChan
-}
-
 func (w *worker) Run(clictxt *cli.Context) error {
 	defer func() {
 		klog.Info("Exiting")
 	}()
-
-	klog.Info("Starting OS watcher.")
-	sigs := newOSWatcher(syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	klog.Infof("K8s-kata-manager Worker %s", version.Get())
 	klog.Infof("NodeName: '%s'", k8scli.NodeName())
@@ -187,9 +179,13 @@ func (w *worker) Run(clictxt *cli.Context) error {
 	if err := w.configure(w.ConfigFilePath); err != nil {
 		return err
 	}
-
 	//TODO move to subcommand or internal.pkg
 	k8scli := k8scli.NewClient(w.Namespace)
+
+	if err := initialize(); err != nil {
+		return fmt.Errorf("unable to initialize: %v", err)
+	}
+	defer shutdown()
 
 	for _, rc := range w.Config.RuntimeClass {
 		creds, err := k8scli.GetCredentials(rc, w.Namespace)
@@ -234,17 +230,12 @@ func (w *worker) Run(clictxt *cli.Context) error {
 			return err
 		}
 
-		var setAsDefault bool
-		if strings.EqualFold(rc.SetAsDefault, "true") {
-			setAsDefault = true
-		}
-
 		runtime := fmt.Sprintf("kata-qemu-%s", rc.Name)
 		ctrdConfig.RuntimeType = fmt.Sprintf("io.containerd.%s.v2", runtime)
 		err = ctrdConfig.AddRuntime(
 			runtime,
 			kataConfigPath,
-			setAsDefault,
+			rc.SetAsDefault,
 		)
 		if err != nil {
 			return fmt.Errorf("unable to update config: %v", err)
@@ -263,37 +254,71 @@ func (w *worker) Run(clictxt *cli.Context) error {
 	}
 
 	klog.Infof("Restarting containerd")
-	err := containerd.RestartContainerd(w.ContainerdSocket)
-	if err != nil {
+	if err := containerd.RestartContainerd(w.ContainerdSocket); err != nil {
 		return fmt.Errorf("unable to restart containerd: %v", err)
 	}
+	klog.Info("containerd successfully restarted")
 
-	// TODO: clean up on exit
-	klog.Info("Watching for signals")
-	for {
-		select {
-		// Watch for any signals from the OS. On SIGHUP trigger a reload of the config.
-		// On all other signals, exit the loop and exit the program.
-		case s := <-sigs:
-			switch s {
-			case syscall.SIGHUP:
-				klog.Info("Received SIGHUP, restarting.")
-				return nil
-			default:
-				klog.Infof("Received signal %v, shutting down.", s)
-				return nil
-			}
-		case <-w.stop:
-			klog.Infof("shutting down k8s-kata-manager-worker")
-			return nil
-		}
+	//	if err := os.Symlink(); err != nil {
+	//		return fmt.Errorf("unable to symlink %v to %v: %v", , , err)
+	//	}
+
+	if err := waitForSignal(); err != nil {
+		return fmt.Errorf("unable to wait for signal: %v", err)
 	}
+
+	return nil
 }
 
-// Stop k8s-kata-manager
-func (w *worker) Stop() {
-	select {
-	case w.stop <- struct{}{}:
-	default:
+func initialize() error {
+	klog.Infof("Initializing")
+
+	f, err := os.Create(pidFile)
+	if err != nil {
+		return fmt.Errorf("unable to create pidfile: %v", err)
+	}
+
+	err = unix.Flock(int(f.Fd()), unix.LOCK_EX|unix.LOCK_NB)
+	if err != nil {
+		klog.Warningf("Unable to get exclusive lock on '%v'", pidFile)
+		klog.Warningf("This normally means an instance of the NVIDIA k8s-kata-manager Container is already running, aborting")
+		return fmt.Errorf("unable to get flock on pidfile: %v", err)
+	}
+
+	_, err = f.WriteString(fmt.Sprintf("%v\n", os.Getpid()))
+	if err != nil {
+		return fmt.Errorf("unable to write PID to pidfile: %v", err)
+	}
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGPIPE, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		select {
+		case <-waitingForSignal:
+			signalReceived <- true
+		default:
+			klog.Infof("Signal received, exiting early")
+			shutdown()
+			os.Exit(0)
+		}
+	}()
+
+	return nil
+}
+
+func waitForSignal() error {
+	klog.Infof("Waiting for signal")
+	waitingForSignal <- true
+	<-signalReceived
+	return nil
+}
+
+func shutdown() {
+	klog.Infof("Shutting Down")
+
+	err := os.Remove(pidFile)
+	if err != nil {
+		klog.Warningf("Unable to remove pidfile: %v", err)
 	}
 }

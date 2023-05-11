@@ -16,7 +16,8 @@ spec:
       imagePullSecrets:
       - name: ghcrcred
       containers:
-      - command: ["k8s-kata-manager"]
+      - command: [bash, -c]
+        args: ["sleep 5; exec k8s-kata-manager"]
         env:
         - name: NODE_NAME
           valueFrom:
@@ -27,7 +28,7 @@ spec:
           value: "yes"
         - name: CONFIGURE_CC
           value: "no"
-        image: ghcr.io/arangogutierrez/kkm:mark2
+        image: ghcr.io/arangogutierrez/kkm:mark3
         imagePullPolicy: Always
         name: cc-runtime-install-pod
         resources: {}
