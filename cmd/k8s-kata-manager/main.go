@@ -41,6 +41,7 @@ import (
 
 const (
 	defaultContainerdConfigFilePath = "/etc/containerd/config.toml"
+	defaultContainerdSocketFilePath = "/run/containerd/containerd.sock"
 )
 
 // Worker is the interface for k8s-kata-manager daemon
@@ -55,6 +56,9 @@ type worker struct {
 	Config         *api.Config
 	Namespace      string
 	ConfigFilePath string
+
+	ContainerdConfig string
+	ContainerdSocket string
 }
 
 // newWorker returns a new worker struct
@@ -96,6 +100,20 @@ func main() {
 			Usage:       "Namespace to use for the k8s-kata-manager",
 			Destination: &worker.Namespace,
 			EnvVars:     []string{"POD_NAMESPACE"},
+		},
+		&cli.StringFlag{
+			Name:        "containerd-config",
+			Usage:       "Path to the containerd config file",
+			Value:       defaultContainerdConfigFilePath,
+			Destination: &worker.ContainerdConfig,
+			EnvVars:     []string{"CONTAINERD_CONFIG"},
+		},
+		&cli.StringFlag{
+			Name:        "containerd-socket",
+			Usage:       "Path to the containerd socket file",
+			Value:       defaultContainerdSocketFilePath,
+			Destination: &worker.ContainerdSocket,
+			EnvVars:     []string{"CONTAINERD_SOCKET"},
 		},
 	}
 
@@ -198,6 +216,15 @@ func (w *worker) Run(clictxt *cli.Context) error {
 			return err
 		}
 
+		kataConfigCandidates, err := filepath.Glob(filepath.Join(rcDir, "*.toml"))
+		if err != nil {
+			return fmt.Errorf("error searching for kata config file: %v", err)
+		}
+		if len(kataConfigCandidates) == 0 {
+			return fmt.Errorf("no kata config file found for runtime class %s", rc.Name)
+		}
+		kataConfigPath := kataConfigCandidates[0]
+
 		ctrdConfig, err := containerd.New(
 			containerd.WithPath(defaultContainerdConfigFilePath),
 			containerd.WithPodAnnotations("io.katacontainers.*"),
@@ -216,7 +243,7 @@ func (w *worker) Run(clictxt *cli.Context) error {
 		ctrdConfig.RuntimeType = fmt.Sprintf("io.containerd.%s.v2", runtime)
 		err = ctrdConfig.AddRuntime(
 			runtime,
-			rcDir,
+			kataConfigPath,
 			setAsDefault,
 		)
 		if err != nil {
@@ -233,7 +260,12 @@ func (w *worker) Run(clictxt *cli.Context) error {
 		} else {
 			klog.Infof("Wrote updated config to %v", defaultContainerdConfigFilePath)
 		}
-		// TODO Reload containerd
+	}
+
+	klog.Infof("Restarting containerd")
+	err := containerd.RestartContainerd(w.ContainerdSocket)
+	if err != nil {
+		return fmt.Errorf("unable to restart containerd: %v", err)
 	}
 
 	// TODO: clean up on exit

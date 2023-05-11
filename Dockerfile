@@ -26,7 +26,7 @@ COPY . .
 RUN make cmds GO_BUILD_ENV='CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH}'
 
 FROM nvcr.io/nvidia/cuda:${CUDA_VERSION}-base-${BASE_DIST}
-COPY --from=builder /build/bin/k8s-operand /usr/local/bin/k8s-operand
+COPY --from=builder /build/bin/k8s-kata-manager /usr/local/bin/k8s-kata-manager
 
 LABEL version="${VERSION}"
 LABEL release="N/A"
@@ -36,4 +36,4 @@ LABEL name="NVIDIA Kata Manager for Kubernetes"
 LABEL summary="NVIDIA Kata Manager for Kubernetes"
 LABEL description="See summary"
 
-ENTRYPOINT [ "/usr/local/bin/k8s-operand" ]
+ENTRYPOINT [ "/usr/local/bin/k8s-kata-manager" ]
