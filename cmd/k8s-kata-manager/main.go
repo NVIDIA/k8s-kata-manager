@@ -17,6 +17,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
@@ -25,6 +26,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"syscall"
+	"time"
 
 	api "github.com/NVIDIA/k8s-kata-manager/api/v1alpha1/config"
 	k8scli "github.com/NVIDIA/k8s-kata-manager/internal/client-go"
@@ -287,6 +289,64 @@ func initialize() error {
 		return fmt.Errorf("unable to write PID to pidfile: %v", err)
 	}
 
+	return nil
+}
+
+func restartContainerd(containerdSocket string) error {
+
+	// Set up the command with its arguments
+	command := "/usr/local/bin/kata-manager"
+	args := []string{"containerd", containerdSocket}
+	cmd := exec.Command(command, args...)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = os.Stderr
+
+	// Create a channel to receive signals
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGHUP)
+
+	// Set up a timer to ignore the signal for 5 seconds
+	ignoreTimer := time.NewTimer(5 * time.Second)
+
+	// Create a channel to signal when the function has finished executing
+	done := make(chan error)
+
+	// Start the function in a goroutine
+	go func() {
+		// Since we are restarintg Containerd we need to
+		// Ignore the SIGTERM signal for 5 seconds
+		<-ignoreTimer.C
+
+		// Execute your function here
+		err := cmd.Run()
+		if err != nil {
+			klog.Errorf("error restarting containerd: %v", err)
+			done <- err
+		}
+		time.Sleep(5 * time.Second)
+		// Signal that the function has finished executing
+		done <- nil
+	}()
+
+	// Wait for the function to finish executing or for the signal to be received
+	select {
+	case err := <-done:
+		if err != nil {
+			return err
+		}
+		klog.Info(out.String())
+	case s := <-sigs:
+		fmt.Printf("Received signal %v", s)
+		// Reset the timer to ignore the signal for another 5 seconds
+		ignoreTimer.Reset(5 * time.Second)
+	}
+
+	return nil
+}
+
+func waitForSignal() error {
+	klog.Infof("Waiting for signal")
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGPIPE, syscall.SIGTERM)
 	go func() {
@@ -301,26 +361,6 @@ func initialize() error {
 		}
 	}()
 
-	return nil
-}
-
-func restartContainerd(containerdSocket string) error {
-	command := "/usr/local/bin/kata-manager"
-	args := []string{"containerd", containerdSocket}
-
-	cmd := exec.Command(command, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
-		return fmt.Errorf("error restarting containerd: %v", err)
-	}
-
-	return nil
-}
-
-func waitForSignal() error {
-	klog.Infof("Waiting for signal")
 	waitingForSignal <- true
 	<-signalReceived
 	return nil

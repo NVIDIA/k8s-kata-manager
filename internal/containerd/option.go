@@ -21,7 +21,7 @@ import (
 	"os"
 
 	"github.com/pelletier/go-toml"
-	log "github.com/sirupsen/logrus"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -88,7 +88,7 @@ func (b *builder) build() (*Config, error) {
 
 // loadConfig loads the containerd config from disk
 func loadConfig(config string) (*Config, error) {
-	log.Infof("Loading config: %v", config)
+	klog.Infof("Loading config: %v", config)
 
 	info, err := os.Stat(config)
 	if os.IsExist(err) && info.IsDir() {
@@ -98,7 +98,7 @@ func loadConfig(config string) (*Config, error) {
 	configFile := config
 	if os.IsNotExist(err) {
 		configFile = "/dev/null"
-		log.Infof("Config file does not exist, creating new one")
+		klog.Infof("Config file does not exist, creating new one")
 	}
 
 	tomlConfig, err := toml.LoadFile(configFile)
@@ -106,7 +106,7 @@ func loadConfig(config string) (*Config, error) {
 		return nil, err
 	}
 
-	log.Infof("Successfully loaded config")
+	klog.Infof("Successfully loaded config")
 
 	cfg := Config{
 		Tree: tomlConfig,

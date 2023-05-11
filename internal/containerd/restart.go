@@ -22,7 +22,7 @@ import (
 	"syscall"
 	"time"
 
-	"k8s.io/klog/v2"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -31,6 +31,8 @@ const (
 
 	socketMessageToGetPID = ""
 )
+
+var logger = log.New()
 
 // RestartContainerd restarts containerd by sending a SIGHUP signal to the containerd daeon
 func RestartContainerd(socket string) error {
@@ -44,7 +46,8 @@ func RestartContainerd(socket string) error {
 
 // signalContainerd sends a SIGHUP signal to the containerd daemon
 func signalContainerd(socket string) error {
-	klog.Infof("Sending SIGHUP signal to containerd")
+	logger.SetLevel(log.DebugLevel)
+	log.Infof("Sending SIGHUP signal to containerd")
 
 	// Wrap the logic to perform the SIGHUP in a function so we can retry it on failure
 	retriable := func() error {
@@ -109,14 +112,14 @@ func signalContainerd(socket string) error {
 		if i == maxReloadAttempts-1 {
 			break
 		}
-		klog.Warningf("Error signaling containerd, attempt %v/%v: %v", i+1, maxReloadAttempts, err)
+		log.Warningf("Error signaling containerd, attempt %v/%v: %v", i+1, maxReloadAttempts, err)
 		time.Sleep(reloadBackoff)
 	}
 	if err != nil {
-		klog.Warningf("Max retries reached %v/%v, aborting", maxReloadAttempts, maxReloadAttempts)
+		log.Warningf("Max retries reached %v/%v, aborting", maxReloadAttempts, maxReloadAttempts)
 		return err
 	}
 
-	klog.Infof("Successfully signaled containerd")
+	log.Infof("Successfully signaled containerd")
 	return nil
 }

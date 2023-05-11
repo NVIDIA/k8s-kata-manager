@@ -17,7 +17,7 @@ spec:
       - name: ghcrcred
       containers:
       - command: [bash, -c]
-        args: ["sleep 5; exec k8s-kata-manager"]
+        args: ["exec k8s-kata-manager"]
         env:
         - name: NODE_NAME
           valueFrom:
