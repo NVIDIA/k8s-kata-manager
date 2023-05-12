@@ -17,11 +17,9 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strconv"
@@ -294,14 +292,6 @@ func initialize() error {
 
 func restartContainerd(containerdSocket string) error {
 
-	// Set up the command with its arguments
-	command := "/usr/local/bin/kata-manager"
-	args := []string{"containerd", containerdSocket}
-	cmd := exec.Command(command, args...)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = os.Stderr
-
 	// Create a channel to receive signals
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGHUP)
@@ -319,7 +309,7 @@ func restartContainerd(containerdSocket string) error {
 		<-ignoreTimer.C
 
 		// Execute your function here
-		err := cmd.Run()
+		err := containerd.RestartContainerd(defaultContainerdSocketFilePath)
 		if err != nil {
 			klog.Errorf("error restarting containerd: %v", err)
 			done <- err
@@ -335,7 +325,6 @@ func restartContainerd(containerdSocket string) error {
 		if err != nil {
 			return err
 		}
-		klog.Info(out.String())
 	case s := <-sigs:
 		fmt.Printf("Received signal %v", s)
 		// Reset the timer to ignore the signal for another 5 seconds
