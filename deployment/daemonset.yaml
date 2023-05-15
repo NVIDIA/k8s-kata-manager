@@ -13,10 +13,12 @@ spec:
         name: kata-manager
     spec:
       serviceAccountName: kata-manager-sa
+      hostPID: true
       imagePullSecrets:
       - name: ghcrcred
       containers:
-      - command: ["k8s-kata-manager"]
+      - command:
+          - k8s-kata-manager
         env:
         - name: NODE_NAME
           valueFrom:
@@ -27,12 +29,14 @@ spec:
           value: "yes"
         - name: CONFIGURE_CC
           value: "no"
-        image: ghcr.io/arangogutierrez/kkm:mark2
+        image: ghcr.io/arangogutierrez/kkm:mark4.2
         imagePullPolicy: Always
         name: cc-runtime-install-pod
         resources: {}
         securityContext:
           privileged: true
+          seLinuxOptions:
+            level: "s0"
           runAsUser: 0
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
@@ -51,7 +55,6 @@ spec:
         node-role.kubernetes.io/worker: ""
       restartPolicy: Always
       schedulerName: default-scheduler
-      securityContext: {}
       terminationGracePeriodSeconds: 30
       volumes:
       - name: kata-manager-conf

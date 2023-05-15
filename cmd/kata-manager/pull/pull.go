@@ -52,7 +52,7 @@ func (m command) build() *cli.Command {
 	c := cli.Command{
 		Name:      "pull",
 		Usage:     "Pull files from a remote registry",
-		UsageText: "nv-oras pull [flags] <name>{:<tag>|@<digest>}",
+		UsageText: "kata-manager pull [flags] <name>{:<tag>|@<digest>}",
 		Before: func(c *cli.Context) error {
 			err := m.validateArgs(c)
 			if err != nil {
