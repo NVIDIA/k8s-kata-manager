@@ -29,7 +29,7 @@ spec:
           value: "yes"
         - name: CONFIGURE_CC
           value: "no"
-        image: ghcr.io/arangogutierrez/kkm:mark4.2
+        image: ghcr.io/arangogutierrez/kkm:mark5.2
         imagePullPolicy: Always
         name: cc-runtime-install-pod
         resources: {}

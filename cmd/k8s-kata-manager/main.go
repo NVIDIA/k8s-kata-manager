@@ -223,7 +223,7 @@ func (w *worker) Run(clictxt *cli.Context) error {
 		kataConfigPath := kataConfigCandidates[0]
 
 		ctrdConfig, err := containerd.New(
-			containerd.WithPath(defaultContainerdConfigFilePath),
+			containerd.WithPath(w.ContainerdConfig),
 			containerd.WithPodAnnotations("io.katacontainers.*"),
 		)
 		if err != nil {
@@ -236,21 +236,21 @@ func (w *worker) Run(clictxt *cli.Context) error {
 		err = ctrdConfig.AddRuntime(
 			runtime,
 			kataConfigPath,
-			rc.SetAsDefault,
+			false,
 		)
 		if err != nil {
 			return fmt.Errorf("unable to update config: %v", err)
 		}
 
-		n, err := ctrdConfig.Save(defaultContainerdConfigFilePath)
+		n, err := ctrdConfig.Save(w.ContainerdConfig)
 		if err != nil {
 			return fmt.Errorf("unable to flush config: %v", err)
 		}
 
 		if n == 0 {
-			klog.Infof("Removed empty config from %v", defaultContainerdConfigFilePath)
+			klog.Infof("Removed empty config from %v", w.ContainerdConfig)
 		} else {
-			klog.Infof("Wrote updated config to %v", defaultContainerdConfigFilePath)
+			klog.Infof("Wrote updated config to %v", w.ContainerdConfig)
 		}
 	}
 
@@ -264,6 +264,42 @@ func (w *worker) Run(clictxt *cli.Context) error {
 		return fmt.Errorf("unable to wait for signal: %v", err)
 	}
 
+	if err := w.CleanUp(); err != nil {
+		return fmt.Errorf("unable to revert config: %v", err)
+	}
+
+	return nil
+}
+
+// RevertConfig reverts the containerd config to remove the nvidia-container-runtime
+func (w *worker) CleanUp() error {
+	ctrdConfig, err := containerd.New(
+		containerd.WithPath(w.ContainerdConfig),
+	)
+	if err != nil {
+		klog.Errorf("error creating containerd.config client : %s", err)
+		return err
+	}
+	for _, rc := range w.Config.RuntimeClass {
+		runtime := fmt.Sprintf("kata-qemu-%s", rc.Name)
+		err := ctrdConfig.RemoveRuntime(runtime)
+		if err != nil {
+			return fmt.Errorf("unable to revert config for runtime class '%v': %v", rc, err)
+		}
+	}
+	n, err := ctrdConfig.Save(w.ContainerdConfig)
+	if err != nil {
+		return fmt.Errorf("unable to flush config: %v", err)
+	}
+
+	if n == 0 {
+		klog.Infof("Removed empty config from %v", w.ContainerdConfig)
+	} else {
+		klog.Infof("Wrote updated config to %v", w.ContainerdConfig)
+	}
+	if err := restartContainerd(w.ContainerdSocket); err != nil {
+		return fmt.Errorf("unable to restart containerd: %v", err)
+	}
 	return nil
 }
 
@@ -304,17 +340,15 @@ func restartContainerd(containerdSocket string) error {
 
 	// Start the function in a goroutine
 	go func() {
-		// Since we are restarintg Containerd we need to
-		// Ignore the SIGTERM signal for 5 seconds
-		<-ignoreTimer.C
-
 		// Execute your function here
-		err := containerd.RestartContainerd(defaultContainerdSocketFilePath)
+		err := containerd.RestartContainerd(containerdSocket)
 		if err != nil {
 			klog.Errorf("error restarting containerd: %v", err)
 			done <- err
 		}
-		time.Sleep(5 * time.Second)
+		// Since we are restarintg Containerd we need to
+		// Ignore the SIGTERM signal for 5 seconds
+		<-ignoreTimer.C
 		// Signal that the function has finished executing
 		done <- nil
 	}()
@@ -358,8 +392,7 @@ func waitForSignal() error {
 func shutdown() {
 	klog.Infof("Shutting Down")
 
-	err := os.Remove(pidFile)
-	if err != nil {
+	if err := os.Remove(pidFile); err != nil {
 		klog.Warningf("Unable to remove pidfile: %v", err)
 	}
 }
