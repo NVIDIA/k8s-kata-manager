@@ -32,7 +32,6 @@ type Config struct {
 type RuntimeClass struct {
 	Name         string            `yaml:"name"`
 	NodeSelector map[string]string `yaml:"nodeSelector"`
-	SetAsDefault bool              `yaml:"setAsDefault"`
 	Artifacts    struct {
 		URL        string `yaml:"url"`
 		PullSecret string `yaml:"pullSecret"`

@@ -48,7 +48,7 @@ func (c *Config) AddRuntime(name string, path string, setAsDefault bool) error {
 	}
 	config := *c.Tree
 
-	switch kata := config.GetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "runtimes", "kata-qemu-nvidia-gpu"}).(type) {
+	switch kata := config.GetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "runtimes", name}).(type) {
 	case *toml.Tree:
 		kata, _ = toml.Load(kata.String())
 		config.SetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "runtimes", name}, kata)
@@ -71,7 +71,7 @@ func (c *Config) AddRuntime(name string, path string, setAsDefault bool) error {
 	return nil
 }
 
-// DefaultRuntime returns the default runtime for the cri-o config
+// DefaultRuntime returns the default runtime for the containerd config
 func (c Config) DefaultRuntime() string {
 	if runtime, ok := c.GetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "default_runtime_name"}).(string); ok {
 		return runtime
@@ -79,7 +79,7 @@ func (c Config) DefaultRuntime() string {
 	return ""
 }
 
-// RemoveRuntime removes a runtime from the docker config
+// RemoveRuntime removes a runtime from the containerd config
 func (c *Config) RemoveRuntime(name string) error {
 	if c == nil || c.Tree == nil {
 		return nil
@@ -105,7 +105,6 @@ func (c *Config) RemoveRuntime(name string) error {
 				if err := config.DeletePath(runtimePath[:len(runtimePath)-i]); err != nil {
 					return err
 				}
-
 			}
 		}
 	}
