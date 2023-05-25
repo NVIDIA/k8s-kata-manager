@@ -188,6 +188,16 @@ func (w *worker) Run(clictxt *cli.Context) error {
 	}
 	defer shutdown()
 
+	ctrdConfig, err := containerd.New(
+		containerd.WithPath(w.ContainerdConfig),
+		containerd.WithPodAnnotations("io.katacontainers.*"),
+		containerd.WithRuntimeType("io.containerd.kata.v2"),
+	)
+	if err != nil {
+		klog.Errorf("error creating containerd.config client : %s", err)
+		return err
+	}
+
 	for _, rc := range w.Config.RuntimeClass {
 		creds, err := k8scli.GetCredentials(rc, w.Namespace)
 		if err != nil {
@@ -222,17 +232,7 @@ func (w *worker) Run(clictxt *cli.Context) error {
 		}
 		kataConfigPath := kataConfigCandidates[0]
 
-		ctrdConfig, err := containerd.New(
-			containerd.WithPath(w.ContainerdConfig),
-			containerd.WithPodAnnotations("io.katacontainers.*"),
-		)
-		if err != nil {
-			klog.Errorf("error creating containerd.config client : %s", err)
-			return err
-		}
-
 		runtime := fmt.Sprintf("kata-qemu-%s", rc.Name)
-		ctrdConfig.RuntimeType = fmt.Sprintf("io.containerd.%s.v2", runtime)
 		err = ctrdConfig.AddRuntime(
 			runtime,
 			kataConfigPath,
@@ -242,16 +242,17 @@ func (w *worker) Run(clictxt *cli.Context) error {
 			return fmt.Errorf("unable to update config: %v", err)
 		}
 
-		n, err := ctrdConfig.Save(w.ContainerdConfig)
-		if err != nil {
-			return fmt.Errorf("unable to flush config: %v", err)
-		}
+	}
 
-		if n == 0 {
-			klog.Infof("Removed empty config from %v", w.ContainerdConfig)
-		} else {
-			klog.Infof("Wrote updated config to %v", w.ContainerdConfig)
-		}
+	n, err := ctrdConfig.Save(w.ContainerdConfig)
+	if err != nil {
+		return fmt.Errorf("unable to flush config: %v", err)
+	}
+
+	if n == 0 {
+		klog.Infof("Removed empty config from %v", w.ContainerdConfig)
+	} else {
+		klog.Infof("Wrote updated config to %v", w.ContainerdConfig)
 	}
 
 	klog.Infof("Restarting containerd")
