@@ -199,6 +199,11 @@ func (w *worker) Run(clictxt *cli.Context) error {
 	}
 
 	for _, rc := range w.Config.RuntimeClasses {
+		if rc.Name == "" {
+			klog.Warning("empty RuntimeClass name, skipping")
+			continue
+		}
+
 		creds, err := k8scli.GetCredentials(rc, w.Namespace)
 		if err != nil {
 			klog.Errorf("error getting credentials: %s", err)
@@ -232,9 +237,8 @@ func (w *worker) Run(clictxt *cli.Context) error {
 		}
 		kataConfigPath := kataConfigCandidates[0]
 
-		runtime := fmt.Sprintf("kata-qemu-%s", rc.Name)
 		err = ctrdConfig.AddRuntime(
-			runtime,
+			rc.Name,
 			kataConfigPath,
 			false,
 		)
@@ -282,8 +286,12 @@ func (w *worker) CleanUp() error {
 		return err
 	}
 	for _, rc := range w.Config.RuntimeClasses {
-		runtime := fmt.Sprintf("kata-qemu-%s", rc.Name)
-		err := ctrdConfig.RemoveRuntime(runtime)
+		if rc.Name == "" {
+			klog.Warning("empty RuntimeClass name, skipping")
+			continue
+		}
+
+		err := ctrdConfig.RemoveRuntime(rc.Name)
 		if err != nil {
 			return fmt.Errorf("unable to revert config for runtime class '%v': %v", rc, err)
 		}
