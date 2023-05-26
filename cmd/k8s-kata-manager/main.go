@@ -198,7 +198,7 @@ func (w *worker) Run(clictxt *cli.Context) error {
 		return err
 	}
 
-	for _, rc := range w.Config.RuntimeClass {
+	for _, rc := range w.Config.RuntimeClasses {
 		creds, err := k8scli.GetCredentials(rc, w.Namespace)
 		if err != nil {
 			klog.Errorf("error getting credentials: %s", err)
@@ -281,7 +281,7 @@ func (w *worker) CleanUp() error {
 		klog.Errorf("error creating containerd.config client : %s", err)
 		return err
 	}
-	for _, rc := range w.Config.RuntimeClass {
+	for _, rc := range w.Config.RuntimeClasses {
 		runtime := fmt.Sprintf("kata-qemu-%s", rc.Name)
 		err := ctrdConfig.RemoveRuntime(runtime)
 		if err != nil {
