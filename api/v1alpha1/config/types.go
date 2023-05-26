@@ -19,7 +19,7 @@ package config
 // NewDefaultConfig returns a new default config.
 func NewDefaultConfig() *Config {
 	return &Config{
-		ArtifactsDir: "/opt/nvidia-gpu-operator/artifacts/runtimeclasses",
+		ArtifactsDir: DefaultKataArtifactsDir,
 	}
 }
 

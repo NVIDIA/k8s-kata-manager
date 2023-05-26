@@ -41,13 +41,16 @@ import (
 )
 
 const (
-	pidFile                         = "/opt/nvidia-gpu-operator/artifacts/runtimeclasses/k8s-kata-manager.pid"
 	defaultContainerdConfigFilePath = "/etc/containerd/config.toml"
 	defaultContainerdSocketFilePath = "/run/containerd/containerd.sock"
 )
 
 var waitingForSignal = make(chan bool, 1)
 var signalReceived = make(chan bool, 1)
+
+var (
+	pidFile = filepath.Join(api.DefaultKataArtifactsDir, "k8s-kata-manager.pid")
+)
 
 // Worker is the interface for k8s-kata-manager daemon
 type Worker interface {
@@ -180,6 +183,11 @@ func (w *worker) Run(clictxt *cli.Context) error {
 	if err := w.configure(w.ConfigFilePath); err != nil {
 		return err
 	}
+
+	if w.Config.ArtifactsDir != api.DefaultKataArtifactsDir {
+		pidFile = filepath.Join(w.Config.ArtifactsDir, "k8s-kata-manager.pid")
+	}
+
 	//TODO move to subcommand or internal.pkg
 	k8scli := k8scli.NewClient(w.Namespace)
 
