@@ -166,6 +166,7 @@ func (w *worker) configure(filepath string) error {
 		klog.Info("no config file specified, using defaults")
 	}
 
+	api.SanitizeConfig(c)
 	w.Config = c
 
 	return nil
@@ -180,9 +181,16 @@ func (w *worker) Run(clictxt *cli.Context) error {
 	klog.Infof("NodeName: '%s'", k8scli.NodeName())
 	klog.Infof("Kubernetes namespace: '%s'", w.Namespace)
 
+	klog.Info("Parsing configuration file")
 	if err := w.configure(w.ConfigFilePath); err != nil {
 		return err
 	}
+
+	configYAML, err := yaml.Marshal(w.Config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config to yaml: %v", err)
+	}
+	klog.Infof("Running with configuration:\n%v", string(configYAML))
 
 	if w.Config.ArtifactsDir != api.DefaultKataArtifactsDir {
 		pidFile = filepath.Join(w.Config.ArtifactsDir, "k8s-kata-manager.pid")
@@ -207,11 +215,6 @@ func (w *worker) Run(clictxt *cli.Context) error {
 	}
 
 	for _, rc := range w.Config.RuntimeClasses {
-		if rc.Name == "" {
-			klog.Warning("empty RuntimeClass name, skipping")
-			continue
-		}
-
 		creds, err := k8scli.GetCredentials(rc, w.Namespace)
 		if err != nil {
 			klog.Errorf("error getting credentials: %s", err)
@@ -294,11 +297,6 @@ func (w *worker) CleanUp() error {
 		return err
 	}
 	for _, rc := range w.Config.RuntimeClasses {
-		if rc.Name == "" {
-			klog.Warning("empty RuntimeClass name, skipping")
-			continue
-		}
-
 		err := ctrdConfig.RemoveRuntime(rc.Name)
 		if err != nil {
 			return fmt.Errorf("unable to revert config for runtime class '%v': %v", rc, err)

@@ -16,12 +16,7 @@
 
 package config
 
-// NewDefaultConfig returns a new default config.
-func NewDefaultConfig() *Config {
-	return &Config{
-		ArtifactsDir: DefaultKataArtifactsDir,
-	}
-}
+import "k8s.io/klog/v2"
 
 // Config defines the configuration for the kata-manager
 type Config struct {
@@ -41,4 +36,30 @@ type RuntimeClass struct {
 type Artifacts struct {
 	URL        string `json:"url"                  yaml:"url"`
 	PullSecret string `json:"pullSecret,omitempty" yaml:"pullSecret,omitempty"`
+}
+
+// NewDefaultConfig returns a new default config.
+func NewDefaultConfig() *Config {
+	return &Config{
+		ArtifactsDir: DefaultKataArtifactsDir,
+	}
+}
+
+// SanitizeConfig sanitizes the config struct and removes any invalid runtime class entries
+func SanitizeConfig(c *Config) {
+	i := 0
+	for idx, rc := range c.RuntimeClasses {
+		if rc.Name == "" {
+			klog.Warningf("empty RuntimeClass name, skipping entry at index %d", idx)
+			continue
+		}
+		if rc.Artifacts.URL == "" {
+			klog.Warningf("empty artifacts url for runtime class %s, skipping entry at index %d", rc.Name, idx)
+			continue
+		}
+		c.RuntimeClasses[i] = rc
+		i++
+	}
+
+	c.RuntimeClasses = c.RuntimeClasses[:i]
 }
