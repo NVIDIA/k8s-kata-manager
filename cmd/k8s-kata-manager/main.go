@@ -41,13 +41,16 @@ import (
 )
 
 const (
-	pidFile                         = "/opt/nvidia-gpu-operator/artifacts/runtimeclasses/k8s-kata-manager.pid"
 	defaultContainerdConfigFilePath = "/etc/containerd/config.toml"
 	defaultContainerdSocketFilePath = "/run/containerd/containerd.sock"
 )
 
 var waitingForSignal = make(chan bool, 1)
 var signalReceived = make(chan bool, 1)
+
+var (
+	pidFile = filepath.Join(api.DefaultKataArtifactsDir, "k8s-kata-manager.pid")
+)
 
 // Worker is the interface for k8s-kata-manager daemon
 type Worker interface {
@@ -163,6 +166,7 @@ func (w *worker) configure(filepath string) error {
 		klog.Info("no config file specified, using defaults")
 	}
 
+	api.SanitizeConfig(c)
 	w.Config = c
 
 	return nil
@@ -177,9 +181,21 @@ func (w *worker) Run(clictxt *cli.Context) error {
 	klog.Infof("NodeName: '%s'", k8scli.NodeName())
 	klog.Infof("Kubernetes namespace: '%s'", w.Namespace)
 
+	klog.Info("Parsing configuration file")
 	if err := w.configure(w.ConfigFilePath); err != nil {
 		return err
 	}
+
+	configYAML, err := yaml.Marshal(w.Config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config to yaml: %v", err)
+	}
+	klog.Infof("Running with configuration:\n%v", string(configYAML))
+
+	if w.Config.ArtifactsDir != api.DefaultKataArtifactsDir {
+		pidFile = filepath.Join(w.Config.ArtifactsDir, "k8s-kata-manager.pid")
+	}
+
 	//TODO move to subcommand or internal.pkg
 	k8scli := k8scli.NewClient(w.Namespace)
 
@@ -198,7 +214,7 @@ func (w *worker) Run(clictxt *cli.Context) error {
 		return err
 	}
 
-	for _, rc := range w.Config.RuntimeClass {
+	for _, rc := range w.Config.RuntimeClasses {
 		creds, err := k8scli.GetCredentials(rc, w.Namespace)
 		if err != nil {
 			klog.Errorf("error getting credentials: %s", err)
@@ -232,9 +248,8 @@ func (w *worker) Run(clictxt *cli.Context) error {
 		}
 		kataConfigPath := kataConfigCandidates[0]
 
-		runtime := fmt.Sprintf("kata-qemu-%s", rc.Name)
 		err = ctrdConfig.AddRuntime(
-			runtime,
+			rc.Name,
 			kataConfigPath,
 			false,
 		)
@@ -281,9 +296,8 @@ func (w *worker) CleanUp() error {
 		klog.Errorf("error creating containerd.config client : %s", err)
 		return err
 	}
-	for _, rc := range w.Config.RuntimeClass {
-		runtime := fmt.Sprintf("kata-qemu-%s", rc.Name)
-		err := ctrdConfig.RemoveRuntime(runtime)
+	for _, rc := range w.Config.RuntimeClasses {
+		err := ctrdConfig.RemoveRuntime(rc.Name)
 		if err != nil {
 			return fmt.Errorf("unable to revert config for runtime class '%v': %v", rc, err)
 		}

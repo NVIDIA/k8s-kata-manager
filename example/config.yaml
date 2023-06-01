@@ -3,7 +3,7 @@ apiVersion: v1
 data:
   config.yaml: |
     artifactsDir: /opt/nvidia-gpu-operator/artifacts/runtimeclasses
-    runtimeClass:
+    runtimeClasses:
       - name: nvidia-gpu
         nodeSelector:
           nvidia.com/gpu.hopper: "true"
