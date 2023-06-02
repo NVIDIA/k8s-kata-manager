@@ -29,8 +29,10 @@ import (
 	api "github.com/NVIDIA/k8s-kata-manager/api/v1alpha1/config"
 	k8scli "github.com/NVIDIA/k8s-kata-manager/internal/client-go"
 	"github.com/NVIDIA/k8s-kata-manager/internal/containerd"
+	"github.com/NVIDIA/k8s-kata-manager/internal/kata/transform"
 	"github.com/NVIDIA/k8s-kata-manager/internal/oras"
 	version "github.com/NVIDIA/k8s-kata-manager/internal/version"
+	"github.com/pelletier/go-toml"
 	"golang.org/x/sys/unix"
 
 	cli "github.com/urfave/cli/v2"
@@ -248,6 +250,11 @@ func (w *worker) Run(clictxt *cli.Context) error {
 		}
 		kataConfigPath := kataConfigCandidates[0]
 
+		err = transformKataConfig(kataConfigPath)
+		if err != nil {
+			return fmt.Errorf("error transforming kata configuration file: %v", err)
+		}
+
 		err = ctrdConfig.AddRuntime(
 			rc.Name,
 			kataConfigPath,
@@ -378,6 +385,42 @@ func restartContainerd(containerdSocket string) error {
 		fmt.Printf("Received signal %v", s)
 		// Reset the timer to ignore the signal for another 5 seconds
 		ignoreTimer.Reset(5 * time.Second)
+	}
+
+	return nil
+}
+
+func transformKataConfig(path string) error {
+	config, err := toml.LoadFile(path)
+	if err != nil {
+		return fmt.Errorf("error reading TOML file: %v", err)
+	}
+
+	artifactsRoot := filepath.Dir(path)
+	t := transform.NewArtifactsRootTransformer(artifactsRoot)
+	err = t.Transform(config)
+	if err != nil {
+		return fmt.Errorf("error transforming root paths in kata configuration file: %v", err)
+	}
+
+	output, err := config.ToTomlString()
+	if err != nil {
+		return fmt.Errorf("unable to convert to TOML: %v", err)
+	}
+
+	if len(output) == 0 {
+		return fmt.Errorf("empty kata configuration")
+	}
+
+	f, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("unable to open '%v' for writing: %v", path, err)
+	}
+	defer f.Close()
+
+	_, err = f.WriteString(output)
+	if err != nil {
+		return fmt.Errorf("unable to write output: %v", err)
 	}
 
 	return nil
