@@ -163,7 +163,7 @@ build-image:
 			--build-arg GOLANG_VERSION="$(GOLANG_VERSION)" \
 			--build-arg VERSION="$(VERSION)" \
 			--build-arg CVE_UPDATES="$(CVE_UPDATES)" \
-			--file Dockerfile \
+			--file Dockerfile.ubi8 \
 			$(CURDIR)
 
 push-image:

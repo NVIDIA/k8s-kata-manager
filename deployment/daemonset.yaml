@@ -50,6 +50,10 @@ spec:
         - name: kata-manager-conf
           mountPath: "/etc/kubernetes/kata-manager/"
           readOnly: true
+        - name: host-root
+          mountPath: "/host"
+          readOnly: true
+          mountPropagation: HostToContainer
       dnsPolicy: ClusterFirst
       nodeSelector:
         node-role.kubernetes.io/worker: ""
@@ -72,3 +76,6 @@ spec:
           path: /opt/nvidia-gpu-operator/artifacts/runtimeclasses/
           type: DirectoryOrCreate
         name: runtimeclass-artifacts
+      - hostPath:
+          path: /
+        name: host-root
