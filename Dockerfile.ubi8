@@ -29,6 +29,8 @@ FROM nvcr.io/nvidia/cuda:${CUDA_VERSION}-base-${BASE_DIST}
 COPY --from=builder /build/bin/k8s-kata-manager /usr/local/bin/k8s-kata-manager
 COPY --from=builder /build/bin/kata-manager /usr/local/bin/kata-manager
 
+RUN dnf install -y kmod
+
 LABEL version="${VERSION}"
 LABEL release="N/A"
 LABEL vendor="NVIDIA"

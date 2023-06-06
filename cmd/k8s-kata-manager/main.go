@@ -20,6 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strconv"
@@ -65,8 +66,9 @@ type worker struct {
 	Namespace      string
 	ConfigFilePath string
 
-	ContainerdConfig string
-	ContainerdSocket string
+	ContainerdConfig  string
+	ContainerdSocket  string
+	LoadKernelModules bool
 }
 
 // newWorker returns a new worker struct
@@ -122,6 +124,13 @@ func main() {
 			Value:       defaultContainerdSocketFilePath,
 			Destination: &worker.ContainerdSocket,
 			EnvVars:     []string{"CONTAINERD_SOCKET"},
+		},
+		&cli.BoolFlag{
+			Name:        "load-kernel-modules",
+			Usage:       "Load kernel modules needed to run Kata workloads",
+			Value:       true,
+			Destination: &worker.LoadKernelModules,
+			EnvVars:     []string{"LOAD_KERNEL_MODULES"},
 		},
 	}
 
@@ -205,6 +214,14 @@ func (w *worker) Run(clictxt *cli.Context) error {
 		return fmt.Errorf("unable to initialize: %v", err)
 	}
 	defer shutdown()
+
+	if w.LoadKernelModules {
+		klog.Info("Loading kernel modules required for kata workloads")
+		err = loadKernelModules()
+		if err != nil {
+			return fmt.Errorf("failed to load kernel modules: %v", err)
+		}
+	}
 
 	ctrdConfig, err := containerd.New(
 		containerd.WithPath(w.ContainerdConfig),
@@ -423,6 +440,20 @@ func transformKataConfig(path string) error {
 		return fmt.Errorf("unable to write output: %v", err)
 	}
 
+	return nil
+}
+
+func loadKernelModules() error {
+	var err error
+	modules := []string{"vhost-vsock", "vhost-net"}
+	for _, module := range modules {
+		klog.Infof("Loading kernel module %s", module)
+		args := []string{"/host", "modprobe", module}
+		err = exec.Command("chroot", args...).Run()
+		if err != nil {
+			return fmt.Errorf("failed to load module %s: %v", module, err)
+		}
+	}
 	return nil
 }
 
