@@ -4,11 +4,9 @@ data:
   config.yaml: |
     artifactsDir: /opt/nvidia-gpu-operator/artifacts/runtimeclasses
     runtimeClasses:
-      - name: nvidia-gpu
-        nodeSelector:
-          nvidia.com/gpu.hopper: "true"
+      - name: kata-qemu-nvidia-gpu
         artifacts:
-          url: stg.nvcr.io/nvidia/cloud-native/kata-gpu-artifacts:ubuntu22.04-535
+          url: stg.nvcr.io/nvidia/cloud-native/kata-gpu-artifacts:ubuntu22.04-525
           pullSecret: <my-k8s-secret>
 kind: ConfigMap
 metadata:
