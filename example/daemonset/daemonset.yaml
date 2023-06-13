@@ -14,8 +14,7 @@ spec:
     spec:
       serviceAccountName: kata-manager-sa
       hostPID: true
-      imagePullSecrets:
-      - name: ghcrcred
+      imagePullSecrets: {}
       containers:
       - command:
           - k8s-kata-manager
@@ -25,13 +24,9 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: spec.nodeName
-        - name: CONFIGURE_KATA
-          value: "yes"
-        - name: CONFIGURE_CC
-          value: "no"
-        image: ghcr.io/arangogutierrez/kkm:mark5.2
+        image: nvcr.io/nvidia/cloud-native/k8s-kata-manager:v0.1.0
         imagePullPolicy: Always
-        name: cc-runtime-install-pod
+        name: k8s-kata-manager
         resources: {}
         securityContext:
           privileged: true
