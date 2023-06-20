@@ -31,7 +31,7 @@ CMDS := $(patsubst ./cmd/%/,%,$(sort $(dir $(wildcard ./cmd/*/))))
 CMD_TARGETS := $(patsubst %,cmd-%, $(CMDS))
 
 CHECK_TARGETS := assert-fmt vet lint ineffassign misspell
-MAKE_TARGETS := cmds build install fmt test coverage $(CHECK_TARGETS)
+MAKE_TARGETS := cmds build install fmt test coverage generate $(CHECK_TARGETS)
 
 TARGETS := $(MAKE_TARGETS)
 DOCKER_TARGETS := $(pathsubst %, docker-%, $(TARGETS))
@@ -120,6 +120,16 @@ test: build
 coverage: test
 	cat $(COVERAGE_FILE) | grep -v "_mock.go" > $(COVERAGE_FILE).no-mocks
 	$(GO_CMD) tool cover -func=$(COVERAGE_FILE).no-mocks
+
+# Generate code
+generate: controller-gen
+	$(CONTROLLER_GEN) object object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
+
+# Download controller-gen locally if necessary
+PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+CONTROLLER_GEN = $(PROJECT_DIR)/bin/controller-gen
+controller-gen:
+	@GOBIN=$(PROJECT_DIR)/bin GO111MODULE=on $(GO_CMD) install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.10.0
 
 ##### Devel image build and push targets #####
 .PHONY: .build-image .pull-build-image .push-build-image
