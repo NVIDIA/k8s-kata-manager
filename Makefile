@@ -32,7 +32,7 @@ CHECK_TARGETS := assert-fmt vet lint ineffassign misspell
 MAKE_TARGETS := cmds build install fmt test coverage generate $(CHECK_TARGETS)
 
 TARGETS := $(MAKE_TARGETS)
-DOCKER_TARGETS := $(pathsubst %, docker-%, $(TARGETS))
+DOCKER_TARGETS := $(patsubst %, docker-%, $(TARGETS))
 .PHONY: $(TARGETS) $(DOCKER_TARGETS)
 
 ##### Container image variables #####
