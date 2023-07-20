@@ -23,8 +23,6 @@ GO_CMD ?= go
 GO_FMT ?= gofmt
 GO_TEST_FLAGS ?= -race
 LDFLAGS = -ldflags "-s -w -X github.com/NVIDIA/k8s-kata-manager/internal/version.version=$(GIT_COMMIT)"
-# Use go.mod go version as a single source of truth of GO version.
-GOLANG_VERSION := $(shell awk '/^go /{print $$2}' go.mod|head -n1)
 
 ##### General make targets #####
 CMDS := $(patsubst ./cmd/%/,%,$(sort $(dir $(wildcard ./cmd/*/))))
