@@ -25,7 +25,7 @@ type nvcdilib struct {
 	vendor string
 	class  string
 
-	nvpcilib nvpci.Interface
+	nvpcilib nvpciInterface
 }
 
 // New creates a new instance of this library
@@ -51,7 +51,7 @@ func New(opts ...Option) (nvcdi.Interface, error) {
 type Option func(*nvcdilib)
 
 // WithNvpciLib sets the nvpci library for the library
-func WithNvpciLib(nvpcilib nvpci.Interface) Option {
+func WithNvpciLib(nvpcilib nvpciInterface) Option {
 	return func(l *nvcdilib) {
 		l.nvpcilib = nvpcilib
 	}
