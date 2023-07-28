@@ -41,11 +41,16 @@ import (
 
 	klog "k8s.io/klog/v2"
 	yaml "sigs.k8s.io/yaml"
+
+	"github.com/NVIDIA/k8s-kata-manager/internal/cdi"
+	cdiapi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 )
 
 const (
 	defaultContainerdConfigFilePath = "/etc/containerd/config.toml"
 	defaultContainerdSocketFilePath = "/run/containerd/containerd.sock"
+
+	cdiRoot = "/var/run/cdi"
 )
 
 var waitingForSignal = make(chan bool, 1)
@@ -69,6 +74,7 @@ type worker struct {
 	ContainerdConfig  string
 	ContainerdSocket  string
 	LoadKernelModules bool
+	CDIEnabled        bool
 }
 
 // newWorker returns a new worker struct
@@ -95,7 +101,9 @@ func main() {
 				Name:    "log-level",
 				Usage:   "Set the logging level",
 				Aliases: []string{"l"},
-				Value:   1}),
+				Value:   1,
+			},
+		),
 		&cli.StringFlag{
 			Name:        "config-file",
 			Value:       "/etc/kubernetes/kata-manager/config.yaml", // Default value
@@ -131,6 +139,13 @@ func main() {
 			Value:       true,
 			Destination: &worker.LoadKernelModules,
 			EnvVars:     []string{"LOAD_KERNEL_MODULES"},
+		},
+		&cli.BoolFlag{
+			Name:        "cdi-enabled",
+			Usage:       "Generate a CDI specification for all NVIDIA GPUs configured for passthrough",
+			Value:       false,
+			Destination: &worker.CDIEnabled,
+			EnvVars:     []string{"CDI_ENABLED"},
 		},
 	}
 
@@ -220,6 +235,13 @@ func (w *worker) Run(clictxt *cli.Context) error {
 		err = loadKernelModules()
 		if err != nil {
 			return fmt.Errorf("failed to load kernel modules: %v", err)
+		}
+	}
+
+	if w.CDIEnabled {
+		err = generateCDISpec()
+		if err != nil {
+			return fmt.Errorf("failed to generate CDI spec: %v", err)
 		}
 	}
 
@@ -454,6 +476,34 @@ func loadKernelModules() error {
 			return fmt.Errorf("failed to load module %s: %v", module, err)
 		}
 	}
+	return nil
+}
+
+func generateCDISpec() error {
+	klog.Info("Generating a CDI specification for all NVIDIA GPUs configured for passthrough")
+	cdilib, err := cdi.New(
+		cdi.WithVendor("nvidia.com"),
+		cdi.WithClass("pgpu"),
+	)
+	if err != nil {
+		return fmt.Errorf("unabled to create cdi lib: %v", err)
+	}
+
+	spec, err := cdilib.GetSpec()
+	if err != nil {
+		return fmt.Errorf("error getting cdi spec: %v", err)
+	}
+
+	specName, err := cdiapi.GenerateNameForSpec(spec.Raw())
+	if err != nil {
+		return fmt.Errorf("failed to generate cdi spec name: %v", err)
+	}
+
+	err = spec.Save(filepath.Join(cdiRoot, specName+".yaml"))
+	if err != nil {
+		return fmt.Errorf("failed to save cdi spec: %v", err)
+	}
+
 	return nil
 }
 
