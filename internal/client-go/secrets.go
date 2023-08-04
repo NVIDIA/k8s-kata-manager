@@ -19,12 +19,12 @@ package kubernetes
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	api "github.com/NVIDIA/k8s-kata-manager/api/v1alpha1/config"
 	utils "github.com/NVIDIA/k8s-kata-manager/internal/utils"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog/v2"
 	"oras.land/oras-go/v2/registry/remote/auth"
 )
 
@@ -44,22 +44,25 @@ type RegistryCredentials struct {
 	Auth     string `json:"auth"`
 }
 
-func (k *k8scli) GetCredentials(rc api.RuntimeClass, namespace string) (auth.Credential, error) {
-	auths := Auths{}
+func (k *k8scli) GetCredentials(rc api.RuntimeClass, namespace string) (*auth.Credential, error) {
+	if rc.Artifacts.PullSecret == "" {
+		return nil, nil
+	}
 
+	auths := Auths{}
 	secret, err := k.Get(context.Background(), rc.Artifacts.PullSecret, metav1.GetOptions{})
 	if err != nil {
-		return auth.Credential{}, err
+		return nil, fmt.Errorf("error getting secret: %v", err)
 	}
 	if err := json.Unmarshal(secret.Data[".dockerconfigjson"], &auths); err != nil {
-		klog.Errorf("error decoding secret: %s", err)
+		return nil, fmt.Errorf("error decoding secret: %v", err)
 	}
 	Registry, err := utils.ParseRegistry(rc.Artifacts.URL)
 	if err != nil {
-		klog.Errorf("error parsing registry: %s", err)
+		return nil, fmt.Errorf("error parsing registry: %v", err)
 	}
 
-	creds := auth.Credential{
+	creds := &auth.Credential{
 		Username: auths.Registries[Registry].Username,
 		Password: auths.Registries[Registry].Password,
 	}

@@ -68,7 +68,7 @@ func NewArtifact(ref string, output string) (*Artifact, error) {
 }
 
 // Pull pulls the artifact from the remote repository into a local path
-func (a *Artifact) Pull(creds auth.Credential) (ocispec.Descriptor, error) {
+func (a *Artifact) Pull(creds *auth.Credential) (ocispec.Descriptor, error) {
 	// Create a file store
 	fs, err := file.New(a.Output)
 	if err != nil {
@@ -83,13 +83,15 @@ func (a *Artifact) Pull(creds auth.Credential) (ocispec.Descriptor, error) {
 		return ocispec.Descriptor{}, err
 	}
 
-	repo.Client = &auth.Client{
-		Client: retry.DefaultClient,
-		Cache:  auth.DefaultCache,
-		Credential: auth.StaticCredential(a.Registry, auth.Credential{
-			Username: creds.Username,
-			Password: creds.Password,
-		}),
+	if creds != nil {
+		repo.Client = &auth.Client{
+			Client: retry.DefaultClient,
+			Cache:  auth.DefaultCache,
+			Credential: auth.StaticCredential(a.Registry, auth.Credential{
+				Username: creds.Username,
+				Password: creds.Password,
+			}),
+		}
 	}
 
 	// Copy from the remote repository to the file store

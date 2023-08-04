@@ -129,7 +129,7 @@ func (m command) run(c *cli.Context, opts *options) error {
 	}
 	m.logger.Infof("Artifact: %v", art)
 
-	creds := auth.Credential{
+	creds := &auth.Credential{
 		Username: opts.username,
 		Password: opts.password,
 	}
