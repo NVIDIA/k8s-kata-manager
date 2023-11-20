@@ -17,8 +17,8 @@
 package cdi
 
 import (
+	"github.com/NVIDIA/go-nvlib/pkg/nvpci"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi"
-	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci"
 )
 
 type nvcdilib struct {

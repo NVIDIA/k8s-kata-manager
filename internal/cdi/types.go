@@ -17,7 +17,7 @@
 package cdi
 
 import (
-	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci"
+	"github.com/NVIDIA/go-nvlib/pkg/nvpci"
 )
 
 type nvpciInterface nvpci.Interface

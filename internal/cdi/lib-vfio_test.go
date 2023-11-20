@@ -19,9 +19,9 @@ package cdi
 import (
 	"testing"
 
-	"github.com/container-orchestrated-devices/container-device-interface/specs-go"
+	"github.com/NVIDIA/go-nvlib/pkg/nvpci"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci"
+	"tags.cncf.io/container-device-interface/specs-go"
 )
 
 func TestGetAllDeviceSpecs(t *testing.T) {

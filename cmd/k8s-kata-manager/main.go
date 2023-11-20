@@ -43,7 +43,7 @@ import (
 	yaml "sigs.k8s.io/yaml"
 
 	"github.com/NVIDIA/k8s-kata-manager/internal/cdi"
-	cdiapi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
+	cdiapi "tags.cncf.io/container-device-interface/pkg/cdi"
 )
 
 const (
