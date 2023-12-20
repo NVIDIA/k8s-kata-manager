@@ -20,10 +20,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/NVIDIA/k8s-kata-manager/internal/oras"
 	"github.com/sirupsen/logrus"
-	cli "github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v2"
 	"oras.land/oras-go/v2/registry/remote/auth"
+
+	"github.com/NVIDIA/k8s-kata-manager/internal/oras"
 )
 
 type command struct {

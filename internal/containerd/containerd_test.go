@@ -17,9 +17,10 @@
 package containerd
 
 import (
+	"testing"
+
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestConfig_AddRuntime(t *testing.T) {

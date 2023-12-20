@@ -37,31 +37,11 @@ fmt:
   script:
     - make assert-fmt
 
-vet:
-  extends:
-    - .go-check
-  script:
-    - make vet
-
 lint:
   extends:
     - .go-check
   script:
     - make lint
-  allow_failure: true
-
-ineffassign:
-  extends:
-    - .go-check
-  script:
-    - make ineffassign
-  allow_failure: true
-
-misspell:
-  extends:
-    - .go-check
-  script:
-    - make misspell
 
 go-build:
   extends:

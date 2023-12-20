@@ -28,7 +28,7 @@ LDFLAGS = -ldflags "-s -w -X github.com/NVIDIA/k8s-kata-manager/internal/version
 CMDS := $(patsubst ./cmd/%/,%,$(sort $(dir $(wildcard ./cmd/*/))))
 CMD_TARGETS := $(patsubst %,cmd-%, $(CMDS))
 
-CHECK_TARGETS := assert-fmt vet lint ineffassign misspell
+CHECK_TARGETS := assert-fmt lint
 MAKE_TARGETS := cmds build install fmt test coverage generate $(CHECK_TARGETS)
 
 TARGETS := $(MAKE_TARGETS)
@@ -99,17 +99,8 @@ assert-fmt:
 		rm fmt.out; \
 	fi
 
-ineffassign:
-	ineffassign $(MODULE)/...
-
 lint:
-	golangci-lint run --timeout 7m0s
-
-misspell:
-	misspell $(MODULE)/...
-
-vet:
-	$(GO_CMD) vet $(MODULE)/...
+	golangci-lint run ./...
 
 COVERAGE_FILE := coverage.out
 test: build

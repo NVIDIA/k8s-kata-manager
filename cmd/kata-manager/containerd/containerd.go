@@ -19,9 +19,10 @@ package containerd
 import (
 	"fmt"
 
-	"github.com/NVIDIA/k8s-kata-manager/internal/containerd"
 	"github.com/sirupsen/logrus"
-	cli "github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v2"
+
+	"github.com/NVIDIA/k8s-kata-manager/internal/containerd"
 )
 
 const (
@@ -58,9 +59,7 @@ func (m command) build() *cli.Command {
 			}
 			return nil
 		},
-		Action: func(c *cli.Context) error {
-			return m.run(c)
-		},
+		Action: m.run,
 	}
 
 	return &c
