@@ -48,9 +48,12 @@ func (c *Config) AddRuntime(name string, path string, setAsDefault bool) error {
 	}
 	config := *c.Tree
 
-	switch kata := config.GetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "runtimes", name}).(type) {
-	case *toml.Tree:
-		kata, _ = toml.Load(kata.String())
+	cfgPath := config.GetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "runtimes", name})
+	if kata, ok := cfgPath.(*toml.Tree); ok {
+		kata, err := toml.Load(kata.String())
+		if err != nil {
+			return fmt.Errorf("failed to load kata config: %w", err)
+		}
 		config.SetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "runtimes", name}, kata)
 	}
 

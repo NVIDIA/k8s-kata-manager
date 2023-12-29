@@ -27,23 +27,21 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/pelletier/go-toml"
+	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v2/altsrc"
+	"golang.org/x/sys/unix"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/yaml"
+	cdiapi "tags.cncf.io/container-device-interface/pkg/cdi"
+
 	api "github.com/NVIDIA/k8s-kata-manager/api/v1alpha1/config"
+	"github.com/NVIDIA/k8s-kata-manager/internal/cdi"
 	k8scli "github.com/NVIDIA/k8s-kata-manager/internal/client-go"
 	"github.com/NVIDIA/k8s-kata-manager/internal/containerd"
 	"github.com/NVIDIA/k8s-kata-manager/internal/kata/transform"
 	"github.com/NVIDIA/k8s-kata-manager/internal/oras"
-	version "github.com/NVIDIA/k8s-kata-manager/internal/version"
-	"github.com/pelletier/go-toml"
-	"golang.org/x/sys/unix"
-
-	cli "github.com/urfave/cli/v2"
-	"github.com/urfave/cli/v2/altsrc"
-
-	klog "k8s.io/klog/v2"
-	yaml "sigs.k8s.io/yaml"
-
-	"github.com/NVIDIA/k8s-kata-manager/internal/cdi"
-	cdiapi "tags.cncf.io/container-device-interface/pkg/cdi"
+	"github.com/NVIDIA/k8s-kata-manager/internal/version"
 )
 
 const (
@@ -222,7 +220,7 @@ func (w *worker) Run(clictxt *cli.Context) error {
 		pidFile = filepath.Join(w.Config.ArtifactsDir, "k8s-kata-manager.pid")
 	}
 
-	//TODO move to subcommand or internal.pkg
+	// TODO move to subcommand or internal.pkg
 	k8scli := k8scli.NewClient(w.Namespace)
 
 	if err := initialize(); err != nil {

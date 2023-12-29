@@ -20,7 +20,7 @@ import (
 	"os"
 
 	log "github.com/sirupsen/logrus"
-	cli "github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v2"
 
 	"github.com/NVIDIA/k8s-kata-manager/cmd/kata-manager/containerd"
 	"github.com/NVIDIA/k8s-kata-manager/cmd/kata-manager/pull"
