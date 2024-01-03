@@ -51,11 +51,11 @@ func (m command) build() *cli.Command {
 		Before: func(c *cli.Context) error {
 			err := m.validateArgs(c)
 			if err != nil {
-				return fmt.Errorf("failed to parse arguments: %v", err)
+				return fmt.Errorf("failed to parse arguments: %w", err)
 			}
 			err = m.validateFlags(c)
 			if err != nil {
-				return fmt.Errorf("failed to parse flags: %v", err)
+				return fmt.Errorf("failed to parse flags: %w", err)
 			}
 			return nil
 		},

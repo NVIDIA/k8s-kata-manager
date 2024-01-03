@@ -75,7 +75,7 @@ func (c *Config) AddRuntime(name string, path string, setAsDefault bool) error {
 }
 
 // DefaultRuntime returns the default runtime for the containerd config
-func (c Config) DefaultRuntime() string {
+func (c *Config) DefaultRuntime() string {
 	if runtime, ok := c.GetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "default_runtime_name"}).(string); ok {
 		return runtime
 	}
@@ -123,11 +123,11 @@ func (c *Config) RemoveRuntime(name string) error {
 }
 
 // Save writes the config to the specified path
-func (c Config) Save(path string) (int64, error) {
+func (c *Config) Save(path string) (int64, error) {
 	config := c.Tree
 	output, err := config.ToTomlString()
 	if err != nil {
-		return 0, fmt.Errorf("unable to convert to TOML: %v", err)
+		return 0, fmt.Errorf("unable to convert to TOML: %w", err)
 	}
 
 	if path == "" {
@@ -138,20 +138,20 @@ func (c Config) Save(path string) (int64, error) {
 	if len(output) == 0 {
 		err := os.Remove(path)
 		if err != nil {
-			return 0, fmt.Errorf("unable to remove empty file: %v", err)
+			return 0, fmt.Errorf("unable to remove empty file: %w", err)
 		}
 		return 0, nil
 	}
 
 	f, err := os.Create(path)
 	if err != nil {
-		return 0, fmt.Errorf("unable to open '%v' for writing: %v", path, err)
+		return 0, fmt.Errorf("unable to open '%s' for writing: %w", path, err)
 	}
 	defer f.Close()
 
 	n, err := f.WriteString(output)
 	if err != nil {
-		return 0, fmt.Errorf("unable to write output: %v", err)
+		return 0, fmt.Errorf("unable to write output: %w", err)
 	}
 
 	return int64(n), err
