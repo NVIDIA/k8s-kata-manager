@@ -57,7 +57,7 @@ func (l *vfiolib) GetAllDeviceSpecs() ([]specs.Device, error) {
 
 	devices, err := l.nvpcilib.GetGPUs()
 	if err != nil {
-		return nil, fmt.Errorf("failed getting NVIDIA GPUs: %v", err)
+		return nil, fmt.Errorf("failed getting NVIDIA GPUs: %w", err)
 	}
 
 	for idx, dev := range devices {
@@ -88,20 +88,20 @@ func (l *vfiolib) GetCommonEdits() (*cdi.ContainerEdits, error) {
 
 // GetGPUDeviceEdits should not be called for vfiolib
 func (l *vfiolib) GetGPUDeviceEdits(device.Device) (*cdi.ContainerEdits, error) {
-	return nil, fmt.Errorf("Unexpected call to vfiolib.GetGPUDeviceEdits()")
+	return nil, fmt.Errorf("unexpected call to vfiolib.GetGPUDeviceEdits()")
 }
 
 // GetGPUDeviceSpecs should not be called for vfiolib
 func (l *vfiolib) GetGPUDeviceSpecs(int, device.Device) (*specs.Device, error) {
-	return nil, fmt.Errorf("Unexpected call to vfiolib.GetGPUDeviceSpecs()")
+	return nil, fmt.Errorf("unexpected call to vfiolib.GetGPUDeviceSpecs()")
 }
 
 // GetMIGDeviceEdits should not be called for vfiolib
 func (l *vfiolib) GetMIGDeviceEdits(device.Device, device.MigDevice) (*cdi.ContainerEdits, error) {
-	return nil, fmt.Errorf("Unexpected call to vfiolib.GetMIGDeviceEdits()")
+	return nil, fmt.Errorf("unexpected call to vfiolib.GetMIGDeviceEdits()")
 }
 
 // GetMIGDeviceSpecs should not be called for vfiolib
 func (l *vfiolib) GetMIGDeviceSpecs(int, device.Device, int, device.MigDevice) (*specs.Device, error) {
-	return nil, fmt.Errorf("Unexpected call to vfiolib.GetMIGDeviceSpecs()")
+	return nil, fmt.Errorf("unexpected call to vfiolib.GetMIGDeviceSpecs()")
 }

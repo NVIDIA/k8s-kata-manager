@@ -57,11 +57,11 @@ func (m command) build() *cli.Command {
 		Before: func(c *cli.Context) error {
 			err := m.validateArgs(c)
 			if err != nil {
-				return fmt.Errorf("failed to parse arguments: %v", err)
+				return fmt.Errorf("failed to parse arguments: %w", err)
 			}
 			err = m.validateFlags(c, &opts)
 			if err != nil {
-				return fmt.Errorf("failed to parse flags: %v", err)
+				return fmt.Errorf("failed to parse flags: %w", err)
 			}
 			return nil
 		},
@@ -122,11 +122,11 @@ func (m command) validateArgs(c *cli.Context) error {
 func (m command) validateFlags(_ *cli.Context, _ *options) error { return nil }
 
 func (m command) run(c *cli.Context, opts *options) error {
-
+	ctx := c.Context
 	ref := c.Args().Get(0)
 	art, err := oras.NewArtifact(ref, opts.output)
 	if err != nil {
-		return fmt.Errorf("failed to create oras artifact: %v", err)
+		return fmt.Errorf("failed to create oras artifact: %w", err)
 	}
 	m.logger.Infof("Artifact: %v", art)
 
@@ -136,9 +136,9 @@ func (m command) run(c *cli.Context, opts *options) error {
 	}
 
 	m.logger.Infof("Pulling %s...\n", ref)
-	manifest, err := art.Pull(creds)
+	manifest, err := art.Pull(ctx, creds)
 	if err != nil {
-		return fmt.Errorf("failed to pull %s: %v", ref, err)
+		return fmt.Errorf("failed to pull %s: %w", ref, err)
 	}
 
 	m.logger.Infof("Successfully pulled %s", ref)

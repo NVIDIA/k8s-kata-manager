@@ -44,22 +44,22 @@ type RegistryCredentials struct {
 	Auth     string `json:"auth"`
 }
 
-func (k *k8scli) GetCredentials(rc api.RuntimeClass, namespace string) (*auth.Credential, error) {
+func (k *k8scli) GetCredentials(ctx context.Context, rc api.RuntimeClass) (*auth.Credential, error) {
 	if rc.Artifacts.PullSecret == "" {
 		return nil, nil
 	}
 
 	auths := Auths{}
-	secret, err := k.Get(context.Background(), rc.Artifacts.PullSecret, metav1.GetOptions{})
+	secret, err := k.Get(ctx, rc.Artifacts.PullSecret, metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("error getting secret: %v", err)
+		return nil, fmt.Errorf("error getting secret: %w", err)
 	}
 	if err := json.Unmarshal(secret.Data[".dockerconfigjson"], &auths); err != nil {
-		return nil, fmt.Errorf("error decoding secret: %v", err)
+		return nil, fmt.Errorf("error decoding secret: %w", err)
 	}
 	Registry, err := utils.ParseRegistry(rc.Artifacts.URL)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing registry: %v", err)
+		return nil, fmt.Errorf("error parsing registry: %w", err)
 	}
 
 	creds := &auth.Credential{

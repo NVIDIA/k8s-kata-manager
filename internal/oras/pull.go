@@ -68,7 +68,7 @@ func NewArtifact(ref string, output string) (*Artifact, error) {
 }
 
 // Pull pulls the artifact from the remote repository into a local path
-func (a *Artifact) Pull(creds *auth.Credential) (ocispec.Descriptor, error) {
+func (a *Artifact) Pull(ctx context.Context, creds *auth.Credential) (ocispec.Descriptor, error) {
 	// Create a file store
 	fs, err := file.New(a.Output)
 	if err != nil {
@@ -77,7 +77,6 @@ func (a *Artifact) Pull(creds *auth.Credential) (ocispec.Descriptor, error) {
 	defer fs.Close()
 
 	// Connect to a remote repository
-	ctx := context.Background()
 	repo, err := remote.NewRepository(a.Repository)
 	if err != nil {
 		return ocispec.Descriptor{}, err

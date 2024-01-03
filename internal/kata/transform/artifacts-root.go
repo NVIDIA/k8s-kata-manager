@@ -45,7 +45,7 @@ func (t artifactsRootTransformer) Transform(config *toml.Tree) error {
 	kConfig := kataConfig{}
 	err := config.Unmarshal(&kConfig)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal kata config: %v", err)
+		return fmt.Errorf("failed to unmarshal kata config: %w", err)
 	}
 
 	for hypervisor := range kConfig.Hypervisor {

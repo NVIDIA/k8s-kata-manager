@@ -37,7 +37,7 @@ import (
 
 	api "github.com/NVIDIA/k8s-kata-manager/api/v1alpha1/config"
 	"github.com/NVIDIA/k8s-kata-manager/internal/cdi"
-	k8scli "github.com/NVIDIA/k8s-kata-manager/internal/client-go"
+	k8sclient "github.com/NVIDIA/k8s-kata-manager/internal/client-go"
 	"github.com/NVIDIA/k8s-kata-manager/internal/containerd"
 	"github.com/NVIDIA/k8s-kata-manager/internal/kata/transform"
 	"github.com/NVIDIA/k8s-kata-manager/internal/oras"
@@ -151,7 +151,7 @@ func main() {
 		// Check if a namespace was specified
 		if worker.Namespace == "" {
 			klog.Warning("No namespace specified, using current namespace")
-			worker.Namespace = k8scli.GetKubernetesNamespace()
+			worker.Namespace = k8sclient.GetKubernetesNamespace()
 		}
 		// set klog log level
 		fs := flag.NewFlagSet("", flag.PanicOnError)
@@ -176,12 +176,12 @@ func (w *worker) configure(filepath string) error {
 			if os.IsNotExist(err) {
 				klog.Infof("config file %q not found, using defaults", filepath)
 			} else {
-				return fmt.Errorf("error reading config file: %s", err)
+				return fmt.Errorf("error reading config file: %w", err)
 			}
 		} else {
 			err = yaml.Unmarshal(data, c)
 			if err != nil {
-				return fmt.Errorf("failed to parse config file: %s", err)
+				return fmt.Errorf("failed to parse config file: %w", err)
 			}
 
 			klog.Infof("configuration file %q parsed", filepath)
@@ -196,13 +196,15 @@ func (w *worker) configure(filepath string) error {
 	return nil
 }
 
-func (w *worker) Run(clictxt *cli.Context) error {
+func (w *worker) Run(c *cli.Context) error {
 	defer func() {
 		klog.Info("Exiting")
 	}()
 
+	ctx := c.Context
+
 	klog.Infof("K8s-kata-manager Worker %s", version.Get())
-	klog.Infof("NodeName: '%s'", k8scli.NodeName())
+	klog.Infof("NodeName: '%s'", k8sclient.NodeName())
 	klog.Infof("Kubernetes namespace: '%s'", w.Namespace)
 
 	klog.Info("Parsing configuration file")
@@ -212,7 +214,7 @@ func (w *worker) Run(clictxt *cli.Context) error {
 
 	configYAML, err := yaml.Marshal(w.Config)
 	if err != nil {
-		return fmt.Errorf("failed to marshal config to yaml: %v", err)
+		return fmt.Errorf("failed to marshal config to yaml: %w", err)
 	}
 	klog.Infof("Running with configuration:\n%v", string(configYAML))
 
@@ -221,10 +223,10 @@ func (w *worker) Run(clictxt *cli.Context) error {
 	}
 
 	// TODO move to subcommand or internal.pkg
-	k8scli := k8scli.NewClient(w.Namespace)
+	k8scli := k8sclient.NewClient(w.Namespace)
 
 	if err := initialize(); err != nil {
-		return fmt.Errorf("unable to initialize: %v", err)
+		return fmt.Errorf("unable to initialize: %w", err)
 	}
 	defer shutdown()
 
@@ -232,14 +234,14 @@ func (w *worker) Run(clictxt *cli.Context) error {
 		klog.Info("Loading kernel modules required for kata workloads")
 		err = loadKernelModules()
 		if err != nil {
-			return fmt.Errorf("failed to load kernel modules: %v", err)
+			return fmt.Errorf("failed to load kernel modules: %w", err)
 		}
 	}
 
 	if w.CDIEnabled {
 		err = generateCDISpec()
 		if err != nil {
-			return fmt.Errorf("failed to generate CDI spec: %v", err)
+			return fmt.Errorf("failed to generate CDI spec: %w", err)
 		}
 	}
 
@@ -254,7 +256,7 @@ func (w *worker) Run(clictxt *cli.Context) error {
 	}
 
 	for _, rc := range w.Config.RuntimeClasses {
-		creds, err := k8scli.GetCredentials(rc, w.Namespace)
+		creds, err := k8scli.GetCredentials(ctx, rc)
 		if err != nil {
 			klog.Errorf("error getting credentials: %s", err)
 			return err
@@ -272,7 +274,7 @@ func (w *worker) Run(clictxt *cli.Context) error {
 			klog.Errorf("error creating artifact: %s", err)
 			return err
 		}
-		_, err = a.Pull(creds)
+		_, err = a.Pull(ctx, creds)
 		if err != nil {
 			klog.Errorf("error pulling artifact: %s", err)
 			return err
@@ -280,7 +282,7 @@ func (w *worker) Run(clictxt *cli.Context) error {
 
 		kataConfigCandidates, err := filepath.Glob(filepath.Join(rcDir, "*.toml"))
 		if err != nil {
-			return fmt.Errorf("error searching for kata config file: %v", err)
+			return fmt.Errorf("error searching for kata config file: %w", err)
 		}
 		if len(kataConfigCandidates) == 0 {
 			return fmt.Errorf("no kata config file found for runtime class %s", rc.Name)
@@ -289,7 +291,7 @@ func (w *worker) Run(clictxt *cli.Context) error {
 
 		err = transformKataConfig(kataConfigPath)
 		if err != nil {
-			return fmt.Errorf("error transforming kata configuration file: %v", err)
+			return fmt.Errorf("error transforming kata configuration file: %w", err)
 		}
 
 		err = ctrdConfig.AddRuntime(
@@ -298,14 +300,14 @@ func (w *worker) Run(clictxt *cli.Context) error {
 			false,
 		)
 		if err != nil {
-			return fmt.Errorf("unable to update config: %v", err)
+			return fmt.Errorf("unable to update config: %w", err)
 		}
 
 	}
 
 	n, err := ctrdConfig.Save(w.ContainerdConfig)
 	if err != nil {
-		return fmt.Errorf("unable to flush config: %v", err)
+		return fmt.Errorf("unable to flush config: %w", err)
 	}
 
 	if n == 0 {
@@ -316,22 +318,22 @@ func (w *worker) Run(clictxt *cli.Context) error {
 
 	klog.Infof("Restarting containerd")
 	if err := restartContainerd(w.ContainerdSocket); err != nil {
-		return fmt.Errorf("unable to restart containerd: %v", err)
+		return fmt.Errorf("unable to restart containerd: %w", err)
 	}
 	klog.Info("containerd successfully restarted")
 
 	if err := waitForSignal(); err != nil {
-		return fmt.Errorf("unable to wait for signal: %v", err)
+		return fmt.Errorf("unable to wait for signal: %w", err)
 	}
 
 	if err := w.CleanUp(); err != nil {
-		return fmt.Errorf("unable to revert config: %v", err)
+		return fmt.Errorf("unable to revert config: %w", err)
 	}
 
 	return nil
 }
 
-// RevertConfig reverts the containerd config to remove the nvidia-container-runtime
+// CleanUp reverts the containerd config to remove the nvidia-container-runtime
 func (w *worker) CleanUp() error {
 	ctrdConfig, err := containerd.New(
 		containerd.WithPath(w.ContainerdConfig),
@@ -343,12 +345,12 @@ func (w *worker) CleanUp() error {
 	for _, rc := range w.Config.RuntimeClasses {
 		err := ctrdConfig.RemoveRuntime(rc.Name)
 		if err != nil {
-			return fmt.Errorf("unable to revert config for runtime class '%v': %v", rc, err)
+			return fmt.Errorf("unable to revert config for runtime class '%v': %w", rc, err)
 		}
 	}
 	n, err := ctrdConfig.Save(w.ContainerdConfig)
 	if err != nil {
-		return fmt.Errorf("unable to flush config: %v", err)
+		return fmt.Errorf("unable to flush config: %w", err)
 	}
 
 	if n == 0 {
@@ -357,7 +359,7 @@ func (w *worker) CleanUp() error {
 		klog.Infof("Wrote updated config to %v", w.ContainerdConfig)
 	}
 	if err := restartContainerd(w.ContainerdSocket); err != nil {
-		return fmt.Errorf("unable to restart containerd: %v", err)
+		return fmt.Errorf("unable to restart containerd: %w", err)
 	}
 	return nil
 }
@@ -367,19 +369,19 @@ func initialize() error {
 
 	f, err := os.Create(pidFile)
 	if err != nil {
-		return fmt.Errorf("unable to create pidfile: %v", err)
+		return fmt.Errorf("unable to create pidfile: %w", err)
 	}
 
 	err = unix.Flock(int(f.Fd()), unix.LOCK_EX|unix.LOCK_NB)
 	if err != nil {
 		klog.Warningf("Unable to get exclusive lock on '%v'", pidFile)
 		klog.Warningf("This normally means an instance of the NVIDIA k8s-kata-manager Container is already running, aborting")
-		return fmt.Errorf("unable to get flock on pidfile: %v", err)
+		return fmt.Errorf("unable to get flock on pidfile: %w", err)
 	}
 
 	_, err = f.WriteString(fmt.Sprintf("%v\n", os.Getpid()))
 	if err != nil {
-		return fmt.Errorf("unable to write PID to pidfile: %v", err)
+		return fmt.Errorf("unable to write PID to pidfile: %w", err)
 	}
 
 	return nil
@@ -430,19 +432,19 @@ func restartContainerd(containerdSocket string) error {
 func transformKataConfig(path string) error {
 	config, err := toml.LoadFile(path)
 	if err != nil {
-		return fmt.Errorf("error reading TOML file: %v", err)
+		return fmt.Errorf("error reading TOML file: %w", err)
 	}
 
 	artifactsRoot := filepath.Dir(path)
 	t := transform.NewArtifactsRootTransformer(artifactsRoot)
 	err = t.Transform(config)
 	if err != nil {
-		return fmt.Errorf("error transforming root paths in kata configuration file: %v", err)
+		return fmt.Errorf("error transforming root paths in kata configuration file: %w", err)
 	}
 
 	output, err := config.ToTomlString()
 	if err != nil {
-		return fmt.Errorf("unable to convert to TOML: %v", err)
+		return fmt.Errorf("unable to convert to TOML: %w", err)
 	}
 
 	if len(output) == 0 {
@@ -451,13 +453,13 @@ func transformKataConfig(path string) error {
 
 	f, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("unable to open '%v' for writing: %v", path, err)
+		return fmt.Errorf("unable to open '%s' for writing: %w", path, err)
 	}
 	defer f.Close()
 
 	_, err = f.WriteString(output)
 	if err != nil {
-		return fmt.Errorf("unable to write output: %v", err)
+		return fmt.Errorf("unable to write output: %w", err)
 	}
 
 	return nil
@@ -471,7 +473,7 @@ func loadKernelModules() error {
 		args := []string{"/host", "modprobe", module}
 		err = exec.Command("chroot", args...).Run()
 		if err != nil {
-			return fmt.Errorf("failed to load module %s: %v", module, err)
+			return fmt.Errorf("failed to load module %s: %w", module, err)
 		}
 	}
 	return nil
@@ -484,22 +486,22 @@ func generateCDISpec() error {
 		cdi.WithClass("pgpu"),
 	)
 	if err != nil {
-		return fmt.Errorf("unabled to create cdi lib: %v", err)
+		return fmt.Errorf("unabled to create cdi lib: %w", err)
 	}
 
 	spec, err := cdilib.GetSpec()
 	if err != nil {
-		return fmt.Errorf("error getting cdi spec: %v", err)
+		return fmt.Errorf("error getting cdi spec: %w", err)
 	}
 
 	specName, err := cdiapi.GenerateNameForSpec(spec.Raw())
 	if err != nil {
-		return fmt.Errorf("failed to generate cdi spec name: %v", err)
+		return fmt.Errorf("failed to generate cdi spec name: %w", err)
 	}
 
 	err = spec.Save(filepath.Join(cdiRoot, specName+".yaml"))
 	if err != nil {
-		return fmt.Errorf("failed to save cdi spec: %v", err)
+		return fmt.Errorf("failed to save cdi spec: %w", err)
 	}
 
 	return nil

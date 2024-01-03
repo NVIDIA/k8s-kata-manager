@@ -77,7 +77,7 @@ func (b *builder) build() (*Config, error) {
 
 	config, err := loadConfig(b.path)
 	if err != nil {
-		return &Config{}, fmt.Errorf("failed to load config: %v", err)
+		return &Config{}, fmt.Errorf("failed to load config: %w", err)
 	}
 	config.RuntimeType = b.runtimeType
 	config.UseDefaultRuntimeName = !b.useLegacyConfig

@@ -21,14 +21,14 @@ import (
 	"strings"
 
 	"k8s.io/client-go/kubernetes"
-	coreV1Types "k8s.io/client-go/kubernetes/typed/core/v1"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 )
 
 var nodeName string
 
 type k8scli struct {
-	coreV1Types.SecretInterface
+	corev1.SecretInterface
 
 	namespace string
 }

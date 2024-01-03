@@ -36,7 +36,7 @@ const (
 func RestartContainerd(socket string) error {
 	err := signalContainerd(socket)
 	if err != nil {
-		return fmt.Errorf("unable to signal containerd: %v", err)
+		return fmt.Errorf("unable to signal containerd: %w", err)
 	}
 
 	return nil
@@ -46,38 +46,38 @@ func RestartContainerd(socket string) error {
 func signalContainerd(socket string) error {
 	klog.Infof("Sending SIGHUP signal to containerd")
 
-	// Wrap the logic to perform the SIGHUP in a function so we can retry it on failure
+	// Wrap the logic to perform the SIGHUP in a function, so we can retry it on failure
 	retriable := func() error {
 		conn, err := net.Dial("unix", socket)
 		if err != nil {
-			return fmt.Errorf("unable to dial: %v", err)
+			return fmt.Errorf("unable to dial: %w", err)
 		}
 		defer conn.Close()
 
 		sconn, err := conn.(*net.UnixConn).SyscallConn()
 		if err != nil {
-			return fmt.Errorf("unable to get syscall connection: %v", err)
+			return fmt.Errorf("unable to get syscall connection: %w", err)
 		}
 
-		err1 := sconn.Control(func(fd uintptr) {
+		socketErr := sconn.Control(func(fd uintptr) {
 			err = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_PASSCRED, 1)
 		})
-		if err1 != nil {
-			return fmt.Errorf("unable to issue call on socket fd: %v", err1)
+		if socketErr != nil {
+			return fmt.Errorf("unable to issue call on socket fd: %w", socketErr)
 		}
 		if err != nil {
-			return fmt.Errorf("unable to SetsockoptInt on socket fd: %v", err)
+			return fmt.Errorf("unable to SetsockoptInt on socket fd: %w", err)
 		}
 
 		_, _, err = conn.(*net.UnixConn).WriteMsgUnix([]byte(socketMessageToGetPID), nil, nil)
 		if err != nil {
-			return fmt.Errorf("unable to WriteMsgUnix on socket fd: %v", err)
+			return fmt.Errorf("unable to WriteMsgUnix on socket fd: %w", err)
 		}
 
 		oob := make([]byte, 1024)
 		_, oobn, _, _, err := conn.(*net.UnixConn).ReadMsgUnix(nil, oob)
 		if err != nil {
-			return fmt.Errorf("unable to ReadMsgUnix on socket fd: %v", err)
+			return fmt.Errorf("unable to ReadMsgUnix on socket fd: %w", err)
 		}
 
 		oob = oob[:oobn]
@@ -88,12 +88,12 @@ func signalContainerd(socket string) error {
 
 		ucred, err := syscall.ParseUnixCredentials(&scm[0])
 		if err != nil {
-			return fmt.Errorf("unable to ParseUnixCredentials from message received on socket fd: %v", err)
+			return fmt.Errorf("unable to ParseUnixCredentials from message received on socket fd: %w", err)
 		}
 
 		err = syscall.Kill(int(ucred.Pid), syscall.SIGHUP)
 		if err != nil {
-			return fmt.Errorf("unable to send SIGHUP to 'containerd' process: %v", err)
+			return fmt.Errorf("unable to send SIGHUP to 'containerd' process: %w", err)
 		}
 
 		return nil
