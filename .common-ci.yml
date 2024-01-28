@@ -20,7 +20,6 @@ default:
 
 variables:
   BUILD_MULTI_ARCH_IMAGES: "false"
-  BUILDIMAGE: "${CI_REGISTRY_IMAGE}/build:${CI_COMMIT_SHORT_SHA}"
 
 stages:
   - image
