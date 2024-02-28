@@ -3,8 +3,8 @@ module github.com/NVIDIA/k8s-kata-manager
 go 1.20
 
 require (
-	github.com/NVIDIA/go-nvlib v0.0.0-20231116150931-9fd385bace0d
-	github.com/NVIDIA/nvidia-container-toolkit v1.14.4-0.20231120112525-f6e3593a726a
+	github.com/NVIDIA/go-nvlib v0.0.0-20231212194527-f3264c8a6a7a
+	github.com/NVIDIA/nvidia-container-toolkit v1.15.0-rc.3
 	github.com/opencontainers/image-spec v1.1.0-rc2
 	github.com/pelletier/go-toml v1.9.5
 	github.com/sirupsen/logrus v1.9.0
@@ -36,7 +36,7 @@ require (
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/google/uuid v1.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
