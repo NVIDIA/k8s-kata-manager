@@ -15,7 +15,7 @@ require (
 	k8s.io/client-go v0.27.1
 	k8s.io/klog/v2 v2.90.1
 	oras.land/oras-go/v2 v2.0.2
-	sigs.k8s.io/yaml v1.3.0
+	sigs.k8s.io/yaml v1.4.0
 	tags.cncf.io/container-device-interface v0.6.2
 	tags.cncf.io/container-device-interface/specs-go v0.6.0
 )
