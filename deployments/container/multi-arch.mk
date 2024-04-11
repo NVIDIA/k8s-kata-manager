@@ -1,4 +1,4 @@
-# Copyright (c) NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,19 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-NAME := k8s-kata-manager
-MODULE := github.com/NVIDIA/$(NAME)
-VERSION ?= v0.1.2
+PUSH_ON_BUILD ?= false
+DOCKER_BUILD_OPTIONS = --output=type=image,push=$(PUSH_ON_BUILD)
+DOCKER_BUILD_PLATFORM_OPTIONS = --platform=linux/amd64,linux/arm64
 
-REGISTRY ?= nvcr.io/nvidia
-
-vVERSION := v$(VERSION:v%=%)
-
-CUDA_VERSION := 12.3.1
-
-GOLANG_VERSION ?= 1.21.5
-
-BUILDIMAGE_TAG ?= devel-go$(GOLANG_VERSION)
-BUILDIMAGE ?=  ghcr.io/nvidia/k8s-test-infra:$(BUILDIMAGE_TAG)
-
-GIT_COMMIT ?= $(shell git describe --match="" --dirty --long --always --abbrev=40 2> /dev/null || echo "")
+$(BUILD_TARGETS): build-%: image-%
