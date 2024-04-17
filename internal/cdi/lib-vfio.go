@@ -92,7 +92,7 @@ func (l *vfiolib) GetGPUDeviceEdits(device.Device) (*cdi.ContainerEdits, error) 
 }
 
 // GetGPUDeviceSpecs should not be called for vfiolib
-func (l *vfiolib) GetGPUDeviceSpecs(int, device.Device) (*specs.Device, error) {
+func (l *vfiolib) GetGPUDeviceSpecs(int, device.Device) ([]specs.Device, error) {
 	return nil, fmt.Errorf("unexpected call to vfiolib.GetGPUDeviceSpecs()")
 }
 
@@ -102,6 +102,10 @@ func (l *vfiolib) GetMIGDeviceEdits(device.Device, device.MigDevice) (*cdi.Conta
 }
 
 // GetMIGDeviceSpecs should not be called for vfiolib
-func (l *vfiolib) GetMIGDeviceSpecs(int, device.Device, int, device.MigDevice) (*specs.Device, error) {
+func (l *vfiolib) GetMIGDeviceSpecs(int, device.Device, int, device.MigDevice) ([]specs.Device, error) {
 	return nil, fmt.Errorf("unexpected call to vfiolib.GetMIGDeviceSpecs()")
+}
+
+func (l *vfiolib) GetDeviceSpecsByID(...string) ([]specs.Device, error) {
+	return nil, fmt.Errorf("unexpected call to vfiolib.GetDeviceSpecsByID()")
 }
