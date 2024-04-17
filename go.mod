@@ -18,8 +18,8 @@ require (
 	k8s.io/klog/v2 v2.120.1
 	oras.land/oras-go/v2 v2.0.2
 	sigs.k8s.io/yaml v1.4.0
-	tags.cncf.io/container-device-interface v0.6.2
-	tags.cncf.io/container-device-interface/specs-go v0.6.0
+	tags.cncf.io/container-device-interface v0.7.2
+	tags.cncf.io/container-device-interface/specs-go v0.7.0
 )
 
 require (
