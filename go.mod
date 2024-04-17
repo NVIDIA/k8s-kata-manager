@@ -9,7 +9,7 @@ require (
 	github.com/pelletier/go-toml v1.9.5
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
-	github.com/urfave/cli/v2 v2.25.1
+	github.com/urfave/cli/v2 v2.27.1
 	golang.org/x/sys v0.13.0
 	k8s.io/apimachinery v0.27.1
 	k8s.io/client-go v0.27.1
@@ -21,7 +21,7 @@ require (
 )
 
 require (
-	github.com/BurntSushi/toml v1.2.1 // indirect
+	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/NVIDIA/go-nvml v0.12.0-1.0.20231020145430-e06766c5e74f // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
