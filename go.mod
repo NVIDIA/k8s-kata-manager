@@ -1,6 +1,6 @@
 module github.com/NVIDIA/k8s-kata-manager
 
-go 1.20
+go 1.21
 
 require (
 	github.com/NVIDIA/go-nvlib v0.0.0-20231116150931-9fd385bace0d
