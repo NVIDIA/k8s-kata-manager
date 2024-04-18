@@ -16,7 +16,7 @@ include:
   - local: '.common-ci.yml'
 
 # Define the image build targets
-image-build:
+.image-build:
   stage: image-build
   variables:
     IMAGE_NAME: "${CI_REGISTRY_IMAGE}"
@@ -28,5 +28,9 @@ image-build:
     - 'echo "Logging in to CI registry ${CI_REGISTRY}"'
     - docker login -u "${CI_REGISTRY_USER}" -p "${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY}"
   script:
-    - make build-image
-    - make push-image
+    - make -f deployments/container/Makefile build-${DIST}
+
+image-ubi8:
+  extends:
+    - .image-build
+    - .dist-ubi8
