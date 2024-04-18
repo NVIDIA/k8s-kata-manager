@@ -17,7 +17,7 @@ require (
 	oras.land/oras-go/v2 v2.5.0
 	sigs.k8s.io/yaml v1.4.0
 	tags.cncf.io/container-device-interface v0.6.2
-	tags.cncf.io/container-device-interface/specs-go v0.6.0
+	tags.cncf.io/container-device-interface/specs-go v0.7.0
 )
 
 require (
