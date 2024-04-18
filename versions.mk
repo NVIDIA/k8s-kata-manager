@@ -20,8 +20,6 @@ REGISTRY ?= nvcr.io/nvidia
 
 vVERSION := v$(VERSION:v%=%)
 
-CUDA_VERSION := 12.3.1
-
 GOLANG_VERSION ?= 1.22.2
 
 BUILDIMAGE_TAG ?= devel-go$(GOLANG_VERSION)
