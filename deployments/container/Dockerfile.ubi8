@@ -28,7 +28,7 @@ RUN set -eux; \
     case "${arch##*-}" in \
         x86_64 | amd64) ARCH='amd64' ;; \
         ppc64el | ppc64le) ARCH='ppc64le' ;; \
-        aarch64) ARCH='arm64' ;; \
+        aarch64 | arm64) ARCH='arm64' ;; \
         *) echo "unsupported architecture" ; exit 1 ;; \
     esac; \
     wget -nv -O - https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-${ARCH}.tar.gz \
@@ -39,11 +39,15 @@ ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 
 WORKDIR /build
 COPY . .
-RUN GOOS=linux make cmd-k8s-kata-manager
+
+RUN mkdir /artifacts
+ARG VERSION="N/A"
+ARG GIT_COMMIT="unknown"
+RUN make PREFIX=/artifacts cmds
 
 FROM nvcr.io/nvidia/cuda:${CUDA_VERSION}-base-${BASE_DIST}
 
-COPY --from=build /build/bin/k8s-kata-manager /usr/local/bin/k8s-kata-manager
+COPY --from=build /artifacts/k8s-kata-manager /usr/bin/k8s-kata-manager
 
 RUN dnf install -y kmod
 
@@ -55,4 +59,4 @@ LABEL name="NVIDIA Kata Manager for Kubernetes"
 LABEL summary="NVIDIA Kata Manager for Kubernetes"
 LABEL description="See summary"
 
-ENTRYPOINT [ "/usr/local/bin/k8s-kata-manager" ]
+ENTRYPOINT [ "/usr/bin/k8s-kata-manager" ]
