@@ -115,8 +115,8 @@ github.com/munnerz/goautoneg
 # github.com/opencontainers/go-digest v1.0.0
 ## explicit; go 1.13
 github.com/opencontainers/go-digest
-# github.com/opencontainers/image-spec v1.1.0-rc2
-## explicit; go 1.17
+# github.com/opencontainers/image-spec v1.1.0
+## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
 # github.com/opencontainers/runtime-spec v1.1.0
@@ -168,8 +168,8 @@ golang.org/x/net/idna
 ## explicit; go 1.11
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.1.0
-## explicit
+# golang.org/x/sync v0.6.0
+## explicit; go 1.18
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 # golang.org/x/sys v0.19.0
@@ -488,8 +488,8 @@ k8s.io/utils/integer
 k8s.io/utils/internal/third_party/forked/golang/net
 k8s.io/utils/net
 k8s.io/utils/strings/slices
-# oras.land/oras-go/v2 v2.0.2
-## explicit; go 1.19
+# oras.land/oras-go/v2 v2.5.0
+## explicit; go 1.21
 oras.land/oras-go/v2
 oras.land/oras-go/v2/content
 oras.land/oras-go/v2/content/file
@@ -503,10 +503,11 @@ oras.land/oras-go/v2/internal/graph
 oras.land/oras-go/v2/internal/httputil
 oras.land/oras-go/v2/internal/interfaces
 oras.land/oras-go/v2/internal/ioutil
+oras.land/oras-go/v2/internal/manifestutil
 oras.land/oras-go/v2/internal/platform
 oras.land/oras-go/v2/internal/registryutil
 oras.land/oras-go/v2/internal/resolver
-oras.land/oras-go/v2/internal/slices
+oras.land/oras-go/v2/internal/spec
 oras.land/oras-go/v2/internal/status
 oras.land/oras-go/v2/internal/syncutil
 oras.land/oras-go/v2/registry
