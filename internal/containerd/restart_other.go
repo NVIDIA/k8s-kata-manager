@@ -1,5 +1,8 @@
+//go:build !linux
+// +build !linux
+
 /**
-# Copyright (c) NVIDIA CORPORATION.  All rights reserved.
+# Copyright 2024 NVIDIA CORPORATION
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,22 +17,11 @@
 # limitations under the License.
 **/
 
-package transform
+package containerd
 
-import (
-	"tags.cncf.io/container-device-interface/specs-go"
-)
+import "fmt"
 
-type noop struct{}
-
-var _ Transformer = (*noop)(nil)
-
-// NewNoopTransformer returns a no-op transformer
-func NewNoopTransformer() Transformer {
-	return noop{}
-}
-
-// Transform is a no-op
-func (n noop) Transform(spec *specs.Spec) error {
-	return nil
+// RestartContainerd is not supported on non-linux platforms.
+func RestartContainerd(string) error {
+	return fmt.Errorf("RestartContainerd is not supported on non-linux platforms")
 }

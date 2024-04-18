@@ -22,7 +22,10 @@ import (
 	"github.com/NVIDIA/go-nvlib/pkg/nvlib/device"
 	"github.com/NVIDIA/go-nvlib/pkg/nvlib/info"
 	"github.com/NVIDIA/go-nvlib/pkg/nvml"
+	"tags.cncf.io/container-device-interface/pkg/cdi"
+
 	"github.com/NVIDIA/nvidia-container-toolkit/internal/logger"
+	"github.com/NVIDIA/nvidia-container-toolkit/internal/lookup/root"
 	"github.com/NVIDIA/nvidia-container-toolkit/internal/platform-support/tegra/csv"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/spec"
 	"github.com/NVIDIA/nvidia-container-toolkit/pkg/nvcdi/transform"
@@ -42,9 +45,12 @@ type nvcdilib struct {
 	nvmllib            nvml.Interface
 	mode               string
 	devicelib          device.Interface
-	deviceNamer        DeviceNamer
+	deviceNamers       DeviceNamers
 	driverRoot         string
+	devRoot            string
 	nvidiaCTKPath      string
+	ldconfigPath       string
+	configSearchPaths  []string
 	librarySearchPaths []string
 
 	csvFiles          []string
@@ -53,6 +59,7 @@ type nvcdilib struct {
 	vendor string
 	class  string
 
+	driver  *root.Driver
 	infolib info.Interface
 
 	mergedDeviceOptions []transform.MergedDeviceOption
@@ -70,11 +77,15 @@ func New(opts ...Option) (Interface, error) {
 	if l.logger == nil {
 		l.logger = logger.New()
 	}
-	if l.deviceNamer == nil {
-		l.deviceNamer, _ = NewDeviceNamer(DeviceNameStrategyIndex)
+	if len(l.deviceNamers) == 0 {
+		indexNamer, _ := NewDeviceNamer(DeviceNameStrategyIndex)
+		l.deviceNamers = []DeviceNamer{indexNamer}
 	}
 	if l.driverRoot == "" {
 		l.driverRoot = "/"
+	}
+	if l.devRoot == "" {
+		l.devRoot = l.driverRoot
 	}
 	if l.nvidiaCTKPath == "" {
 		l.nvidiaCTKPath = "/usr/bin/nvidia-ctk"
@@ -82,6 +93,12 @@ func New(opts ...Option) (Interface, error) {
 	if l.infolib == nil {
 		l.infolib = info.New()
 	}
+
+	l.driver = root.New(
+		root.WithLogger(l.logger),
+		root.WithDriverRoot(l.driverRoot),
+		root.WithLibrarySearchPaths(l.librarySearchPaths...),
+	)
 
 	var lib Interface
 	switch l.resolveMode() {
@@ -148,6 +165,17 @@ func (l *wrapper) GetSpec() (spec.Interface, error) {
 		spec.WithClass(l.class),
 		spec.WithMergedDeviceOptions(l.mergedDeviceOptions...),
 	)
+}
+
+// GetCommonEdits returns the wrapped edits and adds additional edits on top.
+func (m *wrapper) GetCommonEdits() (*cdi.ContainerEdits, error) {
+	edits, err := m.Interface.GetCommonEdits()
+	if err != nil {
+		return nil, err
+	}
+	edits.Env = append(edits.Env, "NVIDIA_VISIBLE_DEVICES=void")
+
+	return edits, nil
 }
 
 // resolveMode resolves the mode for CDI spec generation based on the current system.
