@@ -76,8 +76,8 @@ stages:
     - '[ ${CI_REGISTRY} = ${OUT_REGISTRY} ] || docker login "${OUT_REGISTRY}" -u "${OUT_REGISTRY_USER}" -p "${OUT_REGISTRY_TOKEN}"'
 
     # Since OUT_IMAGE_NAME and OUT_IMAGE_VERSION are set, this will push the CI image to the target
-    - make pull-image
-    - make push-image
+    - make -f deployments/container/Makefile pull-ubi8
+    - make -f deployments/container/Makefile push-ubi8
 
 # Define a staging release step that pushes an image to an internal "staging" repository
 # This is triggered for all pipelines (i.e. not only tags) to test the pipeline steps

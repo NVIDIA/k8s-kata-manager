@@ -43,34 +43,6 @@ ifeq ($(BUILD_MULTI_ARCH_IMAGES),true)
 BUILDX = buildx
 endif
 
-ifeq ($(IMAGE_NAME),)
-REGISTRY ?= nvidia
-IMAGE_NAME := $(REGISTRY)/k8s-kata-manager
-endif
-
-IMAGE_VERSION := $(VERSION)
-
-DIST ?= ubi8
-
-# Note: currently there is no need to build images for different distributions,
-# so the distribution is omitted from the tag
-#IMAGE_TAG ?= $(IMAGE_VERSION)-$(DIST)
-IMAGE_TAG ?= $(IMAGE_VERSION)
-IMAGE = $(IMAGE_NAME):$(IMAGE_TAG)
-
-OUT_IMAGE_NAME ?= $(IMAGE_NAME)
-OUT_IMAGE_VERSION ?= $(IMAGE_VERSION)
-#OUT_IMAGE_TAG = $(OUT_IMAGE_VERSION)-$(DIST)
-OUT_IMAGE_TAG = $(OUT_IMAGE_VERSION)
-OUT_IMAGE = $(OUT_IMAGE_NAME):$(OUT_IMAGE_TAG)
-
-##### Container image make targets #####
-# Note: currently there is no need to build images for different distributions.
-IMAGE_BUILD_TARGETS := build-image
-IMAGE_PUSH_TARGETS := push-image
-IMAGE_PULL_TARGETS := pull-image
-.PHONY: $(IMAGE_BUILD_TARGETS) $(IMAGE_PUSH_TARGETS)
-
 ###### Target definitions #####
 cmds: $(CMD_TARGETS)
 $(CMD_TARGETS): cmd-%:
@@ -131,26 +103,3 @@ $(DOCKER_TARGETS): docker-%:
 		--user $$(id -u):$$(id -g) \
 		$(BUILDIMAGE) \
 			make $(*)
-
-
-##### Image build and push targets #####
-build-image:
-	DOCKER_BUILDKIT=1 \
-		$(DOCKER) $(BUILDX) build --pull \
-			$(DOCKER_BUILD_OPTIONS) \
-			$(DOCKER_BUILD_PLATFORM_OPTIONS) \
-			--tag $(IMAGE) \
-			--build-arg BASE_DIST="$(DIST)" \
-			--build-arg CUDA_VERSION="$(CUDA_VERSION)" \
-			--build-arg GOLANG_VERSION="$(GOLANG_VERSION)" \
-			--build-arg VERSION="$(VERSION)" \
-			--build-arg CVE_UPDATES="$(CVE_UPDATES)" \
-			--file Dockerfile.ubi8 \
-			$(CURDIR)
-
-push-image:
-	$(DOCKER) tag "$(IMAGE)" "$(OUT_IMAGE)"
-	$(DOCKER) push "$(OUT_IMAGE)"
-
-pull-image:
-	$(DOCKER) pull "$(IMAGE)"

@@ -12,16 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG BASE_DIST=ubi8
-ARG CUDA_VERSION
-ARG GOLANG_VERSION=x.x.x
+ARG GOLANG_VERSION=1.21.5
 ARG VERSION="N/A"
 
-FROM nvcr.io/nvidia/cuda:${CUDA_VERSION}-base-${BASE_DIST} as build
+FROM nvcr.io/nvidia/cuda:12.3.1-base-ubi8 as build
 
 RUN yum install -y wget make git gcc
 
-ARG GOLANG_VERSION=0.0.0
+ARG GOLANG_VERSION=1.21.5
 RUN set -eux; \
     \
     arch="$(uname -m)"; \
@@ -41,7 +39,7 @@ WORKDIR /build
 COPY . .
 RUN GOOS=linux make cmd-k8s-kata-manager
 
-FROM nvcr.io/nvidia/cuda:${CUDA_VERSION}-base-${BASE_DIST}
+FROM nvcr.io/nvidia/cuda:12.3.1-base-ubi8
 
 COPY --from=build /build/bin/k8s-kata-manager /usr/local/bin/k8s-kata-manager
 

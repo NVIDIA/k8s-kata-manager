@@ -9,12 +9,21 @@ updates:
     schedule:
       interval: "weekly"
       day: "sunday"
-    ignore:
-    - dependency-name: k8s.io/*
     labels:
     - dependencies
+    groups:
+      k8sio:
+        patterns:
+        - k8s.io/*
+        exclude-patterns:
+        - k8s.io/klog/*
 
   - package-ecosystem: "github-actions"
     directory: "/"
+    schedule:
+      interval: "daily"
+
+  - package-ecosystem: "docker"
+    directory: "/deployments/container"
     schedule:
       interval: "daily"
