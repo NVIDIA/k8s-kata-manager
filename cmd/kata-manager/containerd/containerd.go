@@ -22,7 +22,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
-	"github.com/NVIDIA/k8s-kata-manager/internal/containerd"
+	"github.com/NVIDIA/k8s-kata-manager/internal/runtime/containerd"
 )
 
 const (
