@@ -27,9 +27,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/NVIDIA/k8s-kata-manager/internal/runtime"
-	containerd "github.com/NVIDIA/k8s-kata-manager/internal/runtime/containerd"
-
 	"github.com/pelletier/go-toml"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
@@ -43,6 +40,8 @@ import (
 	k8sclient "github.com/NVIDIA/k8s-kata-manager/internal/client-go"
 	"github.com/NVIDIA/k8s-kata-manager/internal/kata/transform"
 	"github.com/NVIDIA/k8s-kata-manager/internal/oras"
+	"github.com/NVIDIA/k8s-kata-manager/internal/runtime"
+	containerd "github.com/NVIDIA/k8s-kata-manager/internal/runtime/containerd"
 	"github.com/NVIDIA/k8s-kata-manager/internal/version"
 )
 

@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/NVIDIA/k8s-kata-manager/internal/runtime"
-
 	"github.com/pelletier/go-toml"
+
+	"github.com/NVIDIA/k8s-kata-manager/internal/runtime"
 )
 
 // Config represents the containerd config
