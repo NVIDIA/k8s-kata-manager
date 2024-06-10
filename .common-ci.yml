@@ -31,6 +31,7 @@ stages:
   - test
   - scan
   - release
+  - sign
 
 .dist-ubi8:
   variables:
