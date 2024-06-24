@@ -38,9 +38,10 @@ import (
 	api "github.com/NVIDIA/k8s-kata-manager/api/v1alpha1/config"
 	"github.com/NVIDIA/k8s-kata-manager/internal/cdi"
 	k8sclient "github.com/NVIDIA/k8s-kata-manager/internal/client-go"
-	"github.com/NVIDIA/k8s-kata-manager/internal/containerd"
 	"github.com/NVIDIA/k8s-kata-manager/internal/kata/transform"
 	"github.com/NVIDIA/k8s-kata-manager/internal/oras"
+	"github.com/NVIDIA/k8s-kata-manager/internal/runtime"
+	containerd "github.com/NVIDIA/k8s-kata-manager/internal/runtime/containerd"
 	"github.com/NVIDIA/k8s-kata-manager/internal/version"
 )
 
@@ -245,11 +246,8 @@ func (w *worker) Run(c *cli.Context) error {
 		}
 	}
 
-	ctrdConfig, err := containerd.New(
-		containerd.WithPath(w.ContainerdConfig),
-		containerd.WithPodAnnotations("io.katacontainers.*"),
-		containerd.WithRuntimeType("io.containerd.kata.v2"),
-	)
+	options := runtime.Options{Path: w.ContainerdConfig, RuntimeType: "io.containerd.kata.v2", PodAnnotations: []string{"io.katacontainers.*"}}
+	ctrdConfig, err := containerd.Setup(&options)
 	if err != nil {
 		klog.Errorf("error creating containerd.config client : %s", err)
 		return err

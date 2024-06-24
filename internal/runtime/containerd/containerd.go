@@ -21,6 +21,8 @@ import (
 	"os"
 
 	"github.com/pelletier/go-toml"
+
+	"github.com/NVIDIA/k8s-kata-manager/internal/runtime"
 )
 
 // Config represents the containerd config
@@ -29,6 +31,15 @@ type Config struct {
 	RuntimeType           string
 	UseDefaultRuntimeName bool
 	PodAnnotations        []string
+}
+
+func Setup(o *runtime.Options) (runtime.Runtime, error) {
+	ctrdConfig, err := New(
+		WithPath(o.Path),
+		WithPodAnnotations(o.PodAnnotations...),
+		WithRuntimeType(o.RuntimeType),
+	)
+	return ctrdConfig, err
 }
 
 // New creates a containerd config with the specified options
