@@ -19,8 +19,12 @@ package containerd
 import (
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/pelletier/go-toml"
+	"k8s.io/klog/v2"
 
 	"github.com/NVIDIA/k8s-kata-manager/internal/runtime"
 )
@@ -31,6 +35,8 @@ type Config struct {
 	RuntimeType           string
 	UseDefaultRuntimeName bool
 	PodAnnotations        []string
+	Path                  string
+	Socket                string
 }
 
 func Setup(o *runtime.Options) (runtime.Runtime, error) {
@@ -38,6 +44,7 @@ func Setup(o *runtime.Options) (runtime.Runtime, error) {
 		WithPath(o.Path),
 		WithPodAnnotations(o.PodAnnotations...),
 		WithRuntimeType(o.RuntimeType),
+		WithSocket(o.Socket),
 	)
 	return ctrdConfig, err
 }
@@ -134,29 +141,29 @@ func (c *Config) RemoveRuntime(name string) error {
 }
 
 // Save writes the config to the specified path
-func (c *Config) Save(path string) (int64, error) {
+func (c *Config) Save() (int64, error) {
 	config := c.Tree
 	output, err := config.ToTomlString()
 	if err != nil {
 		return 0, fmt.Errorf("unable to convert to TOML: %w", err)
 	}
 
-	if path == "" {
+	if c.Path == "" {
 		os.Stdout.WriteString(fmt.Sprintf("%s\n", output))
 		return int64(len(output)), nil
 	}
 
 	if len(output) == 0 {
-		err := os.Remove(path)
+		err := os.Remove(c.Path)
 		if err != nil {
 			return 0, fmt.Errorf("unable to remove empty file: %w", err)
 		}
 		return 0, nil
 	}
 
-	f, err := os.Create(path)
+	f, err := os.Create(c.Path)
 	if err != nil {
-		return 0, fmt.Errorf("unable to open '%s' for writing: %w", path, err)
+		return 0, fmt.Errorf("unable to open '%s' for writing: %w", c.Path, err)
 	}
 	defer f.Close()
 
@@ -166,4 +173,46 @@ func (c *Config) Save(path string) (int64, error) {
 	}
 
 	return int64(n), err
+}
+
+func (c *Config) Restart() error {
+
+	// Create a channel to receive signals
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGHUP)
+
+	// Set up a timer to ignore the signal for 5 seconds
+	ignoreTimer := time.NewTimer(5 * time.Second)
+
+	// Create a channel to signal when the function has finished executing
+	done := make(chan error)
+
+	// Start the function in a goroutine
+	go func() {
+		// Execute your function here
+		err := RestartContainerd(c.Socket)
+		if err != nil {
+			klog.Errorf("error restarting containerd: %v", err)
+			done <- err
+		}
+		// Since we are restarting containerd we need to
+		// Ignore the SIGTERM signal for 5 seconds
+		<-ignoreTimer.C
+		// Signal that the function has finished executing
+		done <- nil
+	}()
+
+	// Wait for the function to finish executing or for the signal to be received
+	select {
+	case err := <-done:
+		if err != nil {
+			return err
+		}
+	case s := <-sigs:
+		fmt.Printf("Received signal %v", s)
+		// Reset the timer to ignore the signal for another 5 seconds
+		ignoreTimer.Reset(5 * time.Second)
+	}
+
+	return nil
 }

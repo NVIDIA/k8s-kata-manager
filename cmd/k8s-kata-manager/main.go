@@ -25,7 +25,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"syscall"
-	"time"
 
 	"github.com/pelletier/go-toml"
 	"github.com/urfave/cli/v2"
@@ -42,12 +41,14 @@ import (
 	"github.com/NVIDIA/k8s-kata-manager/internal/oras"
 	"github.com/NVIDIA/k8s-kata-manager/internal/runtime"
 	containerd "github.com/NVIDIA/k8s-kata-manager/internal/runtime/containerd"
+	"github.com/NVIDIA/k8s-kata-manager/internal/runtime/crio"
 	"github.com/NVIDIA/k8s-kata-manager/internal/version"
 )
 
 const (
 	defaultContainerdConfigFilePath = "/etc/containerd/config.toml"
 	defaultContainerdSocketFilePath = "/run/containerd/containerd.sock"
+	defaultCrioConfigFilePath       = "/etc/crio/crio.conf"
 
 	cdiRoot = "/var/run/cdi"
 )
@@ -74,6 +75,8 @@ type worker struct {
 	ContainerdSocket  string
 	LoadKernelModules bool
 	CDIEnabled        bool
+	Runtime           string
+	CrioConfig        string
 }
 
 // newWorker returns a new worker struct
@@ -145,6 +148,20 @@ func main() {
 			Value:       false,
 			Destination: &worker.CDIEnabled,
 			EnvVars:     []string{"CDI_ENABLED"},
+		},
+		&cli.StringFlag{
+			Name:        "runtime",
+			Usage:       "Runtime name",
+			Value:       "",
+			Destination: &worker.Runtime,
+			EnvVars:     []string{"RUNTIME"},
+		},
+		&cli.StringFlag{
+			Name:        "crio-config",
+			Usage:       "Path to the CRI-O config file",
+			Value:       defaultCrioConfigFilePath,
+			Destination: &worker.CrioConfig,
+			EnvVars:     []string{"CRIO_CONFIG"},
 		},
 	}
 
@@ -245,11 +262,9 @@ func (w *worker) Run(c *cli.Context) error {
 			return fmt.Errorf("failed to generate CDI spec: %w", err)
 		}
 	}
-
-	options := runtime.Options{Path: w.ContainerdConfig, RuntimeType: "io.containerd.kata.v2", PodAnnotations: []string{"io.katacontainers.*"}}
-	ctrdConfig, err := containerd.Setup(&options)
+	runtimeConfig, err := w.getRuntimeConfig()
 	if err != nil {
-		klog.Errorf("error creating containerd.config client : %s", err)
+		klog.Errorf("error creating runtime config client : %s", err)
 		return err
 	}
 
@@ -292,7 +307,7 @@ func (w *worker) Run(c *cli.Context) error {
 			return fmt.Errorf("error transforming kata configuration file: %w", err)
 		}
 
-		err = ctrdConfig.AddRuntime(
+		err = runtimeConfig.AddRuntime(
 			rc.Name,
 			kataConfigPath,
 			false,
@@ -302,23 +317,21 @@ func (w *worker) Run(c *cli.Context) error {
 		}
 
 	}
-
-	n, err := ctrdConfig.Save(w.ContainerdConfig)
+	n, err := runtimeConfig.Save()
 	if err != nil {
 		return fmt.Errorf("unable to flush config: %w", err)
 	}
-
 	if n == 0 {
-		klog.Infof("Removed empty config from %v", w.ContainerdConfig)
+		klog.Infof("Removed empty config")
 	} else {
-		klog.Infof("Wrote updated config to %v", w.ContainerdConfig)
+		klog.Infof("Wrote updated config")
 	}
 
-	klog.Infof("Restarting containerd")
-	if err := restartContainerd(w.ContainerdSocket); err != nil {
-		return fmt.Errorf("unable to restart containerd: %w", err)
+	klog.Infof("Restarting runtime")
+	if err := runtimeConfig.Restart(); err != nil {
+		return fmt.Errorf("unable to restart runtime service: %w", err)
 	}
-	klog.Info("containerd successfully restarted")
+	klog.Info("runtime successfully restarted")
 
 	if err := waitForSignal(); err != nil {
 		return fmt.Errorf("unable to wait for signal: %w", err)
@@ -331,22 +344,37 @@ func (w *worker) Run(c *cli.Context) error {
 	return nil
 }
 
-// CleanUp reverts the containerd config to remove the nvidia-container-runtime
-func (w *worker) CleanUp() error {
-	ctrdConfig, err := containerd.New(
-		containerd.WithPath(w.ContainerdConfig),
-	)
+func (w *worker) getRuntimeConfig() (runtime.Runtime, error) {
+	var runtimeConfig runtime.Runtime
+	var err error
+	if w.Runtime == api.CRIO.String() {
+		options := runtime.Options{Path: w.CrioConfig, RuntimeType: "vm", PodAnnotations: []string{"io.katacontainers.*"}}
+		runtimeConfig, err = crio.Setup(&options)
+	} else if w.Runtime == api.Containerd.String() {
+		options := runtime.Options{Path: w.ContainerdConfig, RuntimeType: "io.containerd.kata.v2", PodAnnotations: []string{"io.katacontainers.*"}, Socket: w.ContainerdSocket}
+		runtimeConfig, err = containerd.Setup(&options)
+	}
 	if err != nil {
-		klog.Errorf("error creating containerd.config client : %s", err)
+		klog.Errorf("error creating runtime config client : %s", err)
+		return nil, err
+	}
+	return runtimeConfig, nil
+}
+
+// CleanUp reverts the runtime config added by kata manager
+func (w *worker) CleanUp() error {
+	runtimeConfig, err := w.getRuntimeConfig()
+	if err != nil {
+		klog.Errorf("error creating runtime config client : %s", err)
 		return err
 	}
 	for _, rc := range w.Config.RuntimeClasses {
-		err := ctrdConfig.RemoveRuntime(rc.Name)
+		err := runtimeConfig.RemoveRuntime(rc.Name)
 		if err != nil {
 			return fmt.Errorf("unable to revert config for runtime class '%v': %w", rc, err)
 		}
 	}
-	n, err := ctrdConfig.Save(w.ContainerdConfig)
+	n, err := runtimeConfig.Save()
 	if err != nil {
 		return fmt.Errorf("unable to flush config: %w", err)
 	}
@@ -356,8 +384,8 @@ func (w *worker) CleanUp() error {
 	} else {
 		klog.Infof("Wrote updated config to %v", w.ContainerdConfig)
 	}
-	if err := restartContainerd(w.ContainerdSocket); err != nil {
-		return fmt.Errorf("unable to restart containerd: %w", err)
+	if err := runtimeConfig.Restart(); err != nil {
+		return fmt.Errorf("unable to restart runtime service: %w", err)
 	}
 	return nil
 }
@@ -380,48 +408,6 @@ func initialize() error {
 	_, err = f.WriteString(fmt.Sprintf("%v\n", os.Getpid()))
 	if err != nil {
 		return fmt.Errorf("unable to write PID to pidfile: %w", err)
-	}
-
-	return nil
-}
-
-func restartContainerd(containerdSocket string) error {
-
-	// Create a channel to receive signals
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGHUP)
-
-	// Set up a timer to ignore the signal for 5 seconds
-	ignoreTimer := time.NewTimer(5 * time.Second)
-
-	// Create a channel to signal when the function has finished executing
-	done := make(chan error)
-
-	// Start the function in a goroutine
-	go func() {
-		// Execute your function here
-		err := containerd.RestartContainerd(containerdSocket)
-		if err != nil {
-			klog.Errorf("error restarting containerd: %v", err)
-			done <- err
-		}
-		// Since we are restarintg Containerd we need to
-		// Ignore the SIGTERM signal for 5 seconds
-		<-ignoreTimer.C
-		// Signal that the function has finished executing
-		done <- nil
-	}()
-
-	// Wait for the function to finish executing or for the signal to be received
-	select {
-	case err := <-done:
-		if err != nil {
-			return err
-		}
-	case s := <-sigs:
-		fmt.Printf("Received signal %v", s)
-		// Reset the timer to ignore the signal for another 5 seconds
-		ignoreTimer.Reset(5 * time.Second)
 	}
 
 	return nil
