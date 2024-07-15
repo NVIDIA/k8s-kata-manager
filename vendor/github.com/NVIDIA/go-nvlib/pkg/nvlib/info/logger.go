@@ -1,5 +1,5 @@
-/*
-# Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+/**
+# Copyright 2024 NVIDIA CORPORATION
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,15 +12,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-*/
+**/
 
-package oci
+package info
 
-// Runtime is an interface for a runtime shim. The Exec method accepts a list
-// of command line arguments, and returns an error / nil.
-//
-//go:generate moq -rm -stub -out runtime_mock.go . Runtime
-type Runtime interface {
-	Exec([]string) error
-	String() string
+type basicLogger interface {
+	Debugf(string, ...interface{})
+	Infof(string, ...interface{})
 }
+
+type nullLogger struct{}
+
+func (n *nullLogger) Debugf(string, ...interface{}) {}
+
+func (n *nullLogger) Infof(string, ...interface{}) {}
