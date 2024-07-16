@@ -1,11 +1,12 @@
 module github.com/NVIDIA/k8s-kata-manager
 
-go 1.21
+go 1.22.0
+
 toolchain go1.22.5
 
 require (
-	github.com/NVIDIA/go-nvlib v0.2.0
-	github.com/NVIDIA/nvidia-container-toolkit v1.15.0
+	github.com/NVIDIA/go-nvlib v0.6.0
+	github.com/NVIDIA/nvidia-container-toolkit v1.16.0
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/sirupsen/logrus v1.9.3
@@ -23,7 +24,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.3.2 // indirect
-	github.com/NVIDIA/go-nvml v0.12.0-3 // indirect
+	github.com/NVIDIA/go-nvml v0.12.4-0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
@@ -49,8 +50,8 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
-	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
-	golang.org/x/mod v0.17.0 // indirect
+	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
+	golang.org/x/mod v0.19.0 // indirect
 	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/oauth2 v0.10.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect

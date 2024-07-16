@@ -1,5 +1,5 @@
 /**
-# Copyright 2023 NVIDIA CORPORATION
+# Copyright 2024 NVIDIA CORPORATION
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,19 +14,22 @@
 # limitations under the License.
 **/
 
-package nvml
+package spec
 
-// options represents the options that could be passed to the nvml contructor.
-type options struct {
-	libraryPath string
-}
+import (
+	"fmt"
 
-// Option represents a functional option to control behaviour.
-type Option func(*options)
+	"tags.cncf.io/container-device-interface/pkg/cdi"
+	"tags.cncf.io/container-device-interface/specs-go"
+)
 
-// WithLibraryPath sets the NVML library name to use.
-func WithLibraryPath(libraryPath string) Option {
-	return func(o *options) {
-		o.libraryPath = libraryPath
+type setMinimumRequiredVersion struct{}
+
+func (d setMinimumRequiredVersion) Transform(spec *specs.Spec) error {
+	minVersion, err := cdi.MinimumRequiredVersion(spec)
+	if err != nil {
+		return fmt.Errorf("failed to get minimum required CDI spec version: %v", err)
 	}
+	spec.Version = minVersion
+	return nil
 }
