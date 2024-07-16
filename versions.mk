@@ -14,7 +14,7 @@
 
 NAME := k8s-kata-manager
 MODULE := github.com/NVIDIA/$(NAME)
-VERSION ?= v0.2.0
+VERSION ?= v0.2.1
 
 REGISTRY ?= nvcr.io/nvidia
 
