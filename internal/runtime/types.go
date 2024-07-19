@@ -20,11 +20,13 @@ type Runtime interface {
 	AddRuntime(name string, path string, setAsDefault bool) error
 	DefaultRuntime() string
 	RemoveRuntime(name string) error
-	Save(path string) (int64, error)
+	Save() (int64, error)
+	Restart() error
 }
 
 type Options struct {
 	PodAnnotations []string
 	Path           string
 	RuntimeType    string
+	Socket         string
 }

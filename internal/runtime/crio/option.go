@@ -1,5 +1,5 @@
 /**
-# Copyright (c) NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,18 +14,18 @@
 # limitations under the License.
 **/
 
-package containerd
+package crio
 
 import (
 	"fmt"
-	"os"
+	"os/exec"
 
 	"github.com/pelletier/go-toml"
 	"k8s.io/klog/v2"
 )
 
 const (
-	defaultRuntimeType = "io.containerd.runc.v2"
+	defaultRuntimeType = "oci"
 )
 
 type builder struct {
@@ -33,7 +33,6 @@ type builder struct {
 	runtimeType     string
 	useLegacyConfig bool
 	podAnnotations  []string
-	socket          string
 }
 
 // Option defines a function that can be used to configure the config builder
@@ -67,13 +66,6 @@ func WithPodAnnotations(podAnnotations ...string) Option {
 	}
 }
 
-// WithSocket sets the socket for the config builder
-func WithSocket(socket string) Option {
-	return func(b *builder) {
-		b.socket = socket
-	}
-}
-
 func (b *builder) build() (*Config, error) {
 	if b.path == "" {
 		return &Config{}, fmt.Errorf("config path is empty")
@@ -91,27 +83,26 @@ func (b *builder) build() (*Config, error) {
 	config.UseDefaultRuntimeName = !b.useLegacyConfig
 	config.PodAnnotations = b.podAnnotations
 	config.Path = b.path
-	config.Socket = b.socket
 
 	return config, nil
 }
 
-// loadConfig loads the containerd config from disk
+// loadConfig loads the crio config from disk
 func loadConfig(config string) (*Config, error) {
 	klog.Infof("Loading config: %v", config)
 
-	info, err := os.Stat(config)
-	if os.IsExist(err) && info.IsDir() {
-		return nil, fmt.Errorf("config file is a directory")
-	}
+	var args []string
+	args = append(args, "chroot", "/host", "crio", "status", "config")
 
-	configFile := config
-	if os.IsNotExist(err) {
-		configFile = "/dev/null"
-		klog.Infof("Config file does not exist, creating new one")
-	}
+	klog.Infof("Getting crio config")
 
-	tomlConfig, err := toml.LoadFile(configFile)
+	// TODO: Can we harden this so that there is less risk of command injection
+	cmd := exec.Command(args[0], args[1:]...)
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("error getting crio config: %w", err)
+	}
+	tomlConfig, err := toml.LoadBytes(output)
 	if err != nil {
 		return nil, err
 	}

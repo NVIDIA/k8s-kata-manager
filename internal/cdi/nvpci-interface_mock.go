@@ -4,8 +4,9 @@
 package cdi
 
 import (
-	"github.com/NVIDIA/go-nvlib/pkg/nvpci"
 	"sync"
+
+	"github.com/NVIDIA/go-nvlib/pkg/nvpci"
 )
 
 // Ensure, that nvpciInterfaceMock does implement nvpciInterface.
