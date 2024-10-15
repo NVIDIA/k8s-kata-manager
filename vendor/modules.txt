@@ -14,7 +14,7 @@ github.com/NVIDIA/go-nvlib/pkg/pciids
 ## explicit; go 1.20
 github.com/NVIDIA/go-nvml/pkg/dl
 github.com/NVIDIA/go-nvml/pkg/nvml
-# github.com/NVIDIA/nvidia-container-toolkit v1.16.0
+# github.com/NVIDIA/nvidia-container-toolkit v1.16.2
 ## explicit; go 1.20
 github.com/NVIDIA/nvidia-container-toolkit/internal/config/image
 github.com/NVIDIA/nvidia-container-toolkit/internal/discover
@@ -161,7 +161,7 @@ github.com/x448/float16
 # github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1
 ## explicit; go 1.15
 github.com/xrash/smetrics
-# golang.org/x/mod v0.19.0
+# golang.org/x/mod v0.20.0
 ## explicit; go 1.18
 golang.org/x/mod/semver
 # golang.org/x/net v0.26.0

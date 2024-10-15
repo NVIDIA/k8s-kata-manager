@@ -6,7 +6,7 @@ toolchain go1.22.5
 
 require (
 	github.com/NVIDIA/go-nvlib v0.7.0
-	github.com/NVIDIA/nvidia-container-toolkit v1.16.0
+	github.com/NVIDIA/nvidia-container-toolkit v1.16.2
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/sirupsen/logrus v1.9.3
@@ -54,7 +54,7 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
-	golang.org/x/mod v0.19.0 // indirect
+	golang.org/x/mod v0.20.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/oauth2 v0.21.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
