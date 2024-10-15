@@ -33,9 +33,9 @@ stages:
   - release
   - sign
 
-.dist-ubi8:
+.dist-ubi9:
   variables:
-    DIST: ubi8
+    DIST: ubi9
 
 # Define the platform targets
 .platform-amd64:
@@ -120,9 +120,9 @@ stages:
       variables:
         OUT_IMAGE_VERSION: "${CI_COMMIT_TAG}"
 
-release:staging-ubi8:
+release:staging-ubi9:
   extends:
     - .release:staging
-    - .dist-ubi8
+    - .dist-ubi9
   needs:
-    - image-ubi8
+    - image-ubi9
