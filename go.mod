@@ -6,7 +6,7 @@ toolchain go1.23.5
 
 require (
 	github.com/NVIDIA/go-nvlib v0.7.0
-	github.com/NVIDIA/nvidia-container-toolkit v1.16.2
+	github.com/NVIDIA/nvidia-container-toolkit v1.17.4
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/sirupsen/logrus v1.9.3
@@ -24,7 +24,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.4.0 // indirect
-	github.com/NVIDIA/go-nvml v0.12.4-0 // indirect
+	github.com/NVIDIA/go-nvml v0.12.4-1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
