@@ -15,7 +15,7 @@
 ARG GOLANG_VERSION=x.x.x
 ARG VERSION="N/A"
 
-FROM nvcr.io/nvidia/cuda:12.6.3-base-ubi9 as build
+FROM nvcr.io/nvidia/cuda:12.8.0-base-ubi9 as build
 
 RUN yum install -y wget make git gcc
 
@@ -43,7 +43,7 @@ ARG VERSION="N/A"
 ARG GIT_COMMIT="unknown"
 RUN make PREFIX=/artifacts cmds
 
-FROM nvcr.io/nvidia/cuda:12.6.3-base-ubi9
+FROM nvcr.io/nvidia/cuda:12.8.0-base-ubi9
 
 COPY --from=build /artifacts/k8s-kata-manager /usr/bin/k8s-kata-manager
 
