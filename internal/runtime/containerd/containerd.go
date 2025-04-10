@@ -149,7 +149,7 @@ func (c *Config) Save() (int64, error) {
 	}
 
 	if c.Path == "" {
-		os.Stdout.WriteString(fmt.Sprintf("%s\n", output))
+		fmt.Fprintf(os.Stdout, "%s\n", output)
 		return int64(len(output)), nil
 	}
 
