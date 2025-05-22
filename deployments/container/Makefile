@@ -66,7 +66,7 @@ push-%: DIST = $(*)
 push-short: DIST = $(DEFAULT_PUSH_TARGET)
 
 build-%: DIST = $(*)
-build-%: DOCKERFILE = $(CURDIR)/deployments/container/Dockerfile.$(DOCKERFILE_SUFFIX)
+build-%: DOCKERFILE = $(CURDIR)/deployments/container/Dockerfile
 
 # Use a generic build target to build the relevant images
 $(IMAGE_TARGETS): image-%:
