@@ -35,15 +35,13 @@ OUT_IMAGE_VERSION ?= $(VERSION)
 OUT_IMAGE = $(OUT_IMAGE_NAME):$(OUT_IMAGE_VERSION)
 
 ##### Public rules #####
-DEFAULT_PUSH_TARGET := ubi9
-DISTRIBUTIONS = $(DEFAULT_PUSH_TARGET)
 
-IMAGE_TARGETS := $(patsubst %,image-%,$(DISTRIBUTIONS))
-BUILD_TARGETS := $(patsubst %,build-%,$(DISTRIBUTIONS))
-PUSH_TARGETS := $(patsubst %,push-%,$(DISTRIBUTIONS))
-TEST_TARGETS := $(patsubst %,test-%, $(DISTRIBUTIONS))
+IMAGE_TARGETS := image
+BUILD_TARGETS := build-image
+PUSH_TARGETS := push-image
+TEST_TARGETS := test
 
-.PHONY: $(DISTRIBUTIONS) $(PUSH_TARGETS) $(BUILD_TARGETS) $(TEST_TARGETS) $(BUILD_TARGETS)
+.PHONY: $(IMAGE_TARGETS) $(TEST_TARGETS) $(BUILD_TARGETS) $(PUSH_TARGETS) 
 
 ifneq ($(BUILD_MULTI_ARCH_IMAGES),true)
 include $(CURDIR)/deployments/container/native-only.mk
@@ -51,25 +49,10 @@ else
 include $(CURDIR)/deployments/container/multi-arch.mk
 endif
 
-# For the default push target we also push a short tag equal to the version.
-# We skip this for the development release
-DEVEL_RELEASE_IMAGE_VERSION ?= devel
-PUSH_MULTIPLE_TAGS ?= true
-ifeq ($(strip $(OUT_IMAGE_VERSION)),$(DEVEL_RELEASE_IMAGE_VERSION))
-PUSH_MULTIPLE_TAGS = false
-endif
-ifeq ($(PUSH_MULTIPLE_TAGS),true)
-push-$(DEFAULT_PUSH_TARGET): push-short
-endif
-
-push-%: DIST = $(*)
-push-short: DIST = $(DEFAULT_PUSH_TARGET)
-
-build-%: DIST = $(*)
-build-%: DOCKERFILE = $(CURDIR)/deployments/container/Dockerfile.$(DOCKERFILE_SUFFIX)
+build-image: DOCKERFILE = $(CURDIR)/deployments/container/Dockerfile
 
 # Use a generic build target to build the relevant images
-$(IMAGE_TARGETS): image-%:
+$(IMAGE_TARGETS):
 	DOCKER_BUILDKIT=1 \
 		$(DOCKER) $(BUILDX) build --pull \
 		$(DOCKER_BUILD_OPTIONS) \
@@ -82,23 +65,10 @@ $(IMAGE_TARGETS): image-%:
 		-f $(DOCKERFILE) \
 		$(CURDIR)
 
-build-ubuntu%: DOCKERFILE_SUFFIX := ubuntu
-
-build-ubi9: DOCKERFILE_SUFFIX := ubi9
-
-# Handle the default build target.
-.PHONY: build
-build: $(DEFAULT_PUSH_TARGET)
-$(DEFAULT_PUSH_TARGET): build-$(DEFAULT_PUSH_TARGET)
-$(DEFAULT_PUSH_TARGET): DIST = $(DEFAULT_PUSH_TARGET)
-
+build: build-image
 REGCTL ?= regctl
-$(PUSH_TARGETS): push-%:
+$(PUSH_TARGETS):
 	$(REGCTL) \
-	        image copy \
-	        $(IMAGE) $(OUT_IMAGE)
+		image copy \
+		$(IMAGE) $(OUT_IMAGE)
 
-push-short:
-	$(REGCTL) \
-	        image copy \
-	        $(IMAGE) $(OUT_IMAGE_NAME):$(OUT_IMAGE_VERSION)
