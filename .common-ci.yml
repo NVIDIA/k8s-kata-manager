@@ -97,7 +97,7 @@ stages:
 
     # Since OUT_IMAGE_NAME and OUT_IMAGE_VERSION are set, this will push the CI image to the
     # Target
-    - make -f deployments/container/Makefile push-${DIST}
+    - make -f deployments/container/Makefile push-image
 
 # Define a staging release step that pushes an image to an internal "staging" repository
 # This is triggered for all pipelines (i.e. not only tags) to test the pipeline steps
