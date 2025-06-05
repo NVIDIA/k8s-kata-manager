@@ -16,8 +16,8 @@ PUSH_ON_BUILD ?= false
 DOCKER_BUILD_PLATFORM_OPTIONS = --platform=linux/amd64
 
 ifeq ($(PUSH_ON_BUILD),true)
-$(BUILD_TARGETS): build-%: image-%
+$(BUILD_TARGETS): image
 	$(DOCKER) push "$(IMAGE)"
 else
-$(BUILD_TARGETS): build-%: image-%
+$(BUILD_TARGETS): image
 endif

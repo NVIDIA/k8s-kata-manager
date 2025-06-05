@@ -43,11 +43,13 @@ ARG VERSION="N/A"
 ARG GIT_COMMIT="unknown"
 RUN make PREFIX=/artifacts cmds
 
-FROM nvcr.io/nvidia/cuda:12.8.0-base-ubi9
+FROM nvcr.io/nvidia/distroless/go:v3.1.8-dev
 
+USER 0:0
+
+SHELL ["/busybox/sh", "-c"]
+RUN ln -s /busybox/sh /bin/sh
 COPY --from=build /artifacts/k8s-kata-manager /usr/bin/k8s-kata-manager
-
-RUN dnf install -y kmod
 
 LABEL version="${VERSION}"
 LABEL release="N/A"
