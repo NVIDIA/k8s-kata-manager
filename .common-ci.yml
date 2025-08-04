@@ -31,7 +31,7 @@ stages:
   - test
   - scan
   - release
-  - sign
+  - ngc-publish
 
 .dist-ubi9:
   variables:
@@ -106,10 +106,10 @@ stages:
   extends:
     - .release
   variables:
-    OUT_REGISTRY_USER: "${CI_REGISTRY_USER}"
-    OUT_REGISTRY_TOKEN: "${CI_REGISTRY_PASSWORD}"
-    OUT_REGISTRY: "${CI_REGISTRY}"
-    OUT_IMAGE_NAME: "${CI_REGISTRY_IMAGE}/staging/k8s-kata-manager"
+    OUT_REGISTRY_USER: "${NGC_REGISTRY_USER}"
+    OUT_REGISTRY_TOKEN: "${NGC_REGISTRY_TOKEN}"
+    OUT_REGISTRY: "${NGC_REGISTRY}"
+    OUT_IMAGE_NAME: "${NGC_STAGING_REGISTRY}/k8s-kata-manager"
 
 # Define an external release step that pushes an image to an external repository.
 .release:external:
