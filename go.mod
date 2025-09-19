@@ -1,8 +1,6 @@
 module github.com/NVIDIA/k8s-kata-manager
 
-go 1.23.0
-
-toolchain go1.23.5
+go 1.24.0
 
 require (
 	github.com/NVIDIA/go-nvlib v0.7.0
@@ -12,7 +10,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v2 v2.27.5
-	golang.org/x/sys v0.31.0
+	golang.org/x/sys v0.36.0
 	k8s.io/apimachinery v0.32.1
 	k8s.io/client-go v0.32.1
 	k8s.io/klog/v2 v2.130.1
