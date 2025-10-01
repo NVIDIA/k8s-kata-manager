@@ -32,6 +32,7 @@ type Device interface {
 	GetMigDevices() ([]MigDevice, error)
 	GetMigProfiles() ([]MigProfile, error)
 	GetPCIBusID() (string, error)
+	IsCoherent() (bool, error)
 	IsFabricAttached() (bool, error)
 	IsMigCapable() (bool, error)
 	IsMigEnabled() (bool, error)
@@ -86,9 +87,11 @@ func (d *device) GetArchitectureAsString() (string, error) {
 	case nvml.DEVICE_ARCH_AMPERE:
 		return "Ampere", nil
 	case nvml.DEVICE_ARCH_ADA:
-		return "Ada", nil
+		return "Ada Lovelace", nil
 	case nvml.DEVICE_ARCH_HOPPER:
 		return "Hopper", nil
+	case nvml.DEVICE_ARCH_BLACKWELL:
+		return "Blackwell", nil
 	case nvml.DEVICE_ARCH_UNKNOWN:
 		return "Unknown", nil
 	}
@@ -125,7 +128,7 @@ func (d *device) GetBrandAsString() (string, error) {
 	case nvml.BRAND_NVIDIA_VWS:
 		return "NvidiaVWS", nil
 	// Deprecated in favor of nvml.BRAND_NVIDIA_CLOUD_GAMING
-	//case nvml.BRAND_NVIDIA_VGAMING:
+	// case nvml.BRAND_NVIDIA_VGAMING:
 	//	return "VGaming", nil
 	case nvml.BRAND_NVIDIA_CLOUD_GAMING:
 		return "NvidiaCloudGaming", nil
@@ -175,6 +178,27 @@ func (d *device) GetCudaComputeCapabilityAsString() (string, error) {
 	return fmt.Sprintf("%d.%d", major, minor), nil
 }
 
+// IsCoherent returns whether the device is capable of coherent access to system
+// memory.
+func (d *device) IsCoherent() (bool, error) {
+	if !d.lib.hasSymbol("nvmlDeviceGetAddressingMode") {
+		return false, nil
+	}
+
+	mode, ret := nvml.Device(d).GetAddressingMode()
+	if ret == nvml.ERROR_NOT_SUPPORTED {
+		return false, nil
+	}
+	if ret != nvml.SUCCESS {
+		return false, fmt.Errorf("error getting addressing mode: %v", ret)
+	}
+
+	if nvml.DeviceAddressingModeType(mode.Value) == nvml.DEVICE_ADDRESSING_MODE_ATS {
+		return true, nil
+	}
+	return false, nil
+}
+
 // IsMigCapable checks if a device is capable of having MIG paprtitions created on it.
 func (d *device) IsMigCapable() (bool, error) {
 	if !d.lib.hasSymbol("nvmlDeviceGetMigMode") {
@@ -222,6 +246,9 @@ func (d *device) IsFabricAttached() (bool, error) {
 		if info.State != nvml.GPU_FABRIC_STATE_COMPLETED {
 			return false, nil
 		}
+		if info.ClusterUuid == [16]uint8{} {
+			return false, nil
+		}
 		if nvml.Return(info.Status) != nvml.SUCCESS {
 			return false, nil
 		}
@@ -238,6 +265,9 @@ func (d *device) IsFabricAttached() (bool, error) {
 			return false, fmt.Errorf("error getting GPU Fabric Info: %v", ret)
 		}
 		if info.State != nvml.GPU_FABRIC_STATE_COMPLETED {
+			return false, nil
+		}
+		if info.ClusterUuid == [16]uint8{} {
 			return false, nil
 		}
 		if nvml.Return(info.Status) != nvml.SUCCESS {
