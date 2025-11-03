@@ -7,8 +7,8 @@ updates:
     target-branch: main
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "sunday"
+      interval: "daily"
+    open-pull-requests-limit: 10
     labels:
     - dependencies
     groups:
