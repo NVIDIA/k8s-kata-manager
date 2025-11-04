@@ -103,7 +103,19 @@ CONTROLLER_GEN ?= controller-gen
 .generate-api:
 	$(CONTROLLER_GEN) object object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
 
-$(DOCKER_TARGETS): docker-%:
+# Generate an image for containerized builds
+# Note: This image is local only
+.PHONY: .build-image
+.build-image: deployments/devel/Dockerfile
+	if [ x"$(SKIP_IMAGE_BUILD)" = x"" ]; then \
+		$(DOCKER) build \
+			--progress=plain \
+			--tag $(BUILDIMAGE) \
+			-f $(^) \
+			deployments/devel; \
+	fi
+
+$(DOCKER_TARGETS): docker-%: .build-image
 	@echo "Running 'make $(*)' in container image $(BUILDIMAGE)"
 	$(DOCKER) run \
 		--rm \
@@ -117,7 +129,7 @@ $(DOCKER_TARGETS): docker-%:
 
 # Start an interactive shell using the development image.
 PHONY: .shell
-.shell:
+.shell: .build-image
 	$(DOCKER) run \
 		--rm \
 		-ti \

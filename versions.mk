@@ -20,9 +20,9 @@ REGISTRY ?= nvcr.io/nvidia
 
 vVERSION := v$(VERSION:v%=%)
 
-GOLANG_VERSION ?= 1.23.5
+GOLANG_VERSION ?= $(shell ./hack/golang-version.sh)
 
 BUILDIMAGE_TAG ?= devel-go$(GOLANG_VERSION)
-BUILDIMAGE ?=  ghcr.io/nvidia/k8s-test-infra:$(BUILDIMAGE_TAG)
+BUILDIMAGE ?=  $(NAME):$(BUILDIMAGE_TAG)
 
 GIT_COMMIT ?= $(shell git describe --match="" --dirty --long --always --abbrev=40 2> /dev/null || echo "")
