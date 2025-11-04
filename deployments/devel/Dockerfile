@@ -1,4 +1,4 @@
-# Copyright (c) NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-NAME := k8s-kata-manager
-MODULE := github.com/NVIDIA/$(NAME)
-VERSION ?= v0.2.3
-
-REGISTRY ?= nvcr.io/nvidia
-
-vVERSION := v$(VERSION:v%=%)
-
-GOLANG_VERSION ?= $(shell ./hack/golang-version.sh)
-
-BUILDIMAGE_TAG ?= devel-go$(GOLANG_VERSION)
-BUILDIMAGE ?=  $(NAME):$(BUILDIMAGE_TAG)
-
-GIT_COMMIT ?= $(shell git describe --match="" --dirty --long --always --abbrev=40 2> /dev/null || echo "")
+# This Dockerfile is also used to define the golang version used in this project
+# This allows dependabot to manage this version in addition to other images.
+FROM golang:1.25.3
