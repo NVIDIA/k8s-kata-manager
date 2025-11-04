@@ -2,7 +2,7 @@
 ## explicit; go 1.18
 github.com/BurntSushi/toml
 github.com/BurntSushi/toml/internal
-# github.com/NVIDIA/go-nvlib v0.7.0
+# github.com/NVIDIA/go-nvlib v0.8.1
 ## explicit; go 1.20
 github.com/NVIDIA/go-nvlib/pkg/nvlib/device
 github.com/NVIDIA/go-nvlib/pkg/nvlib/info
@@ -10,12 +10,12 @@ github.com/NVIDIA/go-nvlib/pkg/nvpci
 github.com/NVIDIA/go-nvlib/pkg/nvpci/bytes
 github.com/NVIDIA/go-nvlib/pkg/nvpci/mmio
 github.com/NVIDIA/go-nvlib/pkg/pciids
-# github.com/NVIDIA/go-nvml v0.12.4-1
+# github.com/NVIDIA/go-nvml v0.13.0-1
 ## explicit; go 1.20
 github.com/NVIDIA/go-nvml/pkg/dl
 github.com/NVIDIA/go-nvml/pkg/nvml
-# github.com/NVIDIA/nvidia-container-toolkit v1.17.4
-## explicit; go 1.20
+# github.com/NVIDIA/nvidia-container-toolkit v1.18.0
+## explicit; go 1.24.0
 github.com/NVIDIA/nvidia-container-toolkit/internal/config/image
 github.com/NVIDIA/nvidia-container-toolkit/internal/discover
 github.com/NVIDIA/nvidia-container-toolkit/internal/dxcore
@@ -25,7 +25,6 @@ github.com/NVIDIA/nvidia-container-toolkit/internal/info/proc
 github.com/NVIDIA/nvidia-container-toolkit/internal/ldcache
 github.com/NVIDIA/nvidia-container-toolkit/internal/logger
 github.com/NVIDIA/nvidia-container-toolkit/internal/lookup
-github.com/NVIDIA/nvidia-container-toolkit/internal/lookup/cuda
 github.com/NVIDIA/nvidia-container-toolkit/internal/lookup/root
 github.com/NVIDIA/nvidia-container-toolkit/internal/lookup/symlinks
 github.com/NVIDIA/nvidia-container-toolkit/internal/nvcaps
@@ -107,7 +106,7 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runtime-spec v1.2.0
+# github.com/opencontainers/runtime-spec v1.2.1
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
 # github.com/opencontainers/runtime-tools v0.9.1-0.20221107090550-2e043c6bd626
@@ -130,7 +129,7 @@ github.com/russross/blackfriday/v2
 # github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
-# github.com/stretchr/testify v1.10.0
+# github.com/stretchr/testify v1.11.1
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/assert/yaml
@@ -154,8 +153,8 @@ go.yaml.in/yaml/v2
 # go.yaml.in/yaml/v3 v3.0.4
 ## explicit; go 1.16
 go.yaml.in/yaml/v3
-# golang.org/x/mod v0.20.0
-## explicit; go 1.18
+# golang.org/x/mod v0.29.0
+## explicit; go 1.24.0
 golang.org/x/mod/semver
 # golang.org/x/net v0.38.0
 ## explicit; go 1.23.0
@@ -172,8 +171,8 @@ golang.org/x/oauth2/internal
 ## explicit; go 1.23.0
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.31.0
-## explicit; go 1.23.0
+# golang.org/x/sys v0.37.0
+## explicit; go 1.24.0
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -548,12 +547,12 @@ sigs.k8s.io/structured-merge-diff/v6/value
 # sigs.k8s.io/yaml v1.6.0
 ## explicit; go 1.22
 sigs.k8s.io/yaml
-# tags.cncf.io/container-device-interface v0.8.0
+# tags.cncf.io/container-device-interface v1.0.1
 ## explicit; go 1.20
 tags.cncf.io/container-device-interface/internal/validation
 tags.cncf.io/container-device-interface/internal/validation/k8s
 tags.cncf.io/container-device-interface/pkg/cdi
 tags.cncf.io/container-device-interface/pkg/parser
-# tags.cncf.io/container-device-interface/specs-go v0.8.0
+# tags.cncf.io/container-device-interface/specs-go v1.0.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
