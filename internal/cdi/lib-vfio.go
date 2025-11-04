@@ -32,7 +32,7 @@ type vfiolib nvcdilib
 var _ nvcdi.Interface = (*vfiolib)(nil)
 
 // GetSpec returns the complete CDI spec
-func (l *vfiolib) GetSpec() (spec.Interface, error) {
+func (l *vfiolib) GetSpec(...string) (spec.Interface, error) {
 	deviceSpecs, err := l.GetAllDeviceSpecs()
 	if err != nil {
 		return nil, err
