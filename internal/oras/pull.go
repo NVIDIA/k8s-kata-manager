@@ -94,13 +94,19 @@ func (a *Artifact) Pull(ctx context.Context, creds *auth.Credential) (ocispec.De
 		}
 	}
 
-	// Set up platform-specific copy options
+	// Try to copy with platform-specific options first
 	copyOpts := oras.DefaultCopyOptions
 	copyOpts.WithTargetPlatform(&ocispec.Platform{
 		Architecture: runtime.GOARCH,
 		OS:           runtime.GOOS,
 	})
 
-	// Copy from the remote repository to the file store
-	return oras.Copy(ctx, repo, a.Tag, fs, a.Tag, copyOpts)
+	desc, err := oras.Copy(ctx, repo, a.Tag, fs, a.Tag, copyOpts)
+	if err != nil {
+		// If platform-specific copy fails, fall back to default options
+		// This handles cases where the manifest doesn't specify a platform
+		return oras.Copy(ctx, repo, a.Tag, fs, a.Tag, oras.DefaultCopyOptions)
+	}
+
+	return desc, nil
 }
