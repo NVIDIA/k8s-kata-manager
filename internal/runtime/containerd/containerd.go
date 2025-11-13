@@ -37,6 +37,7 @@ type Config struct {
 	PodAnnotations        []string
 	Path                  string
 	Socket                string
+	configVersion         int
 }
 
 func Setup(o *runtime.Options) (runtime.Runtime, error) {
@@ -47,6 +48,61 @@ func Setup(o *runtime.Options) (runtime.Runtime, error) {
 		WithSocket(o.Socket),
 	)
 	return ctrdConfig, err
+}
+
+// getVersion returns the version of the containerd config
+// Per containerd docs: the version field in config.toml is the authoritative source
+// https://github.com/containerd/containerd/blob/main/docs/man/containerd-config.toml.5.md
+func (c *Config) getVersion() int {
+	if c.configVersion != 0 {
+		return c.configVersion
+	}
+
+	// Read the version field
+	if version, ok := c.Get("version").(int64); ok {
+		c.configVersion = int(version)
+		klog.V(2).Infof("Using containerd config version %d", c.configVersion)
+		return c.configVersion
+	}
+
+	// If no version field is present, default to version 2
+	// Note: containerd defaults to v1 if absent, but v1 is deprecated
+	// Default to v2 as it's the stable, widely-used version
+	c.configVersion = 2
+	klog.V(2).Infof("No version field found, defaulting to containerd config version %d", c.configVersion)
+	return c.configVersion
+}
+
+// getPluginPath returns the appropriate plugin path based on the config version
+func (c *Config) getPluginPath(runtimeName string, subpath ...string) []string {
+	version := c.getVersion()
+
+	var basePath []string
+	if version >= 3 {
+		// Version 3+ uses plugins."io.containerd.cri.v1.runtime"
+		// Note: v3 configs may have both "io.containerd.cri.v1" and "io.containerd.cri.v1.runtime"
+		// sections, but containerd only reads runtimes from the ".runtime" path
+		basePath = []string{"plugins", "io.containerd.cri.v1.runtime", "containerd"}
+	} else {
+		// Version 1 & 2 use plugins."io.containerd.grpc.v1.cri"
+		basePath = []string{"plugins", "io.containerd.grpc.v1.cri", "containerd"}
+	}
+
+	if runtimeName != "" {
+		basePath = append(basePath, "runtimes", runtimeName)
+	}
+
+	return append(basePath, subpath...)
+}
+
+// getDefaultRuntimePath returns the path for the default_runtime_name based on version
+func (c *Config) getDefaultRuntimePath() []string {
+	version := c.getVersion()
+
+	if version >= 3 {
+		return []string{"plugins", "io.containerd.cri.v1.runtime", "containerd", "default_runtime_name"}
+	}
+	return []string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "default_runtime_name"}
 }
 
 // New creates a containerd config with the specified options
@@ -66,26 +122,30 @@ func (c *Config) AddRuntime(name string, path string, setAsDefault bool) error {
 	}
 	config := *c.Tree
 
-	cfgPath := config.GetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "runtimes", name})
+	version := c.getVersion()
+	klog.V(2).Infof("Adding runtime %s to containerd config version %d", name, version)
+
+	runtimePath := c.getPluginPath(name)
+	cfgPath := config.GetPath(runtimePath)
 	if kata, ok := cfgPath.(*toml.Tree); ok {
 		kata, err := toml.Load(kata.String())
 		if err != nil {
 			return fmt.Errorf("failed to load kata config: %w", err)
 		}
-		config.SetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "runtimes", name}, kata)
+		config.SetPath(runtimePath, kata)
 	}
 
-	if config.GetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "runtimes", name}) == nil {
-		config.SetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "runtimes", name, "runtime_type"}, c.RuntimeType)
-		config.SetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "runtimes", name, "privileged_without_host_devices"}, true)
+	if config.GetPath(runtimePath) == nil {
+		config.SetPath(c.getPluginPath(name, "runtime_type"), c.RuntimeType)
+		config.SetPath(c.getPluginPath(name, "privileged_without_host_devices"), true)
 	}
 
-	config.SetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "runtimes", name, "pod_annotations"}, c.PodAnnotations)
+	config.SetPath(c.getPluginPath(name, "pod_annotations"), c.PodAnnotations)
 
-	config.SetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "runtimes", name, "options", "ConfigPath"}, path)
+	config.SetPath(c.getPluginPath(name, "options", "ConfigPath"), path)
 
 	if setAsDefault {
-		config.SetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "default_runtime_name"}, name)
+		config.SetPath(c.getDefaultRuntimePath(), name)
 	}
 
 	*c.Tree = config
@@ -94,7 +154,7 @@ func (c *Config) AddRuntime(name string, path string, setAsDefault bool) error {
 
 // DefaultRuntime returns the default runtime for the containerd config
 func (c *Config) DefaultRuntime() string {
-	if runtime, ok := c.GetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "default_runtime_name"}).(string); ok {
+	if runtime, ok := c.GetPath(c.getDefaultRuntimePath()).(string); ok {
 		return runtime
 	}
 	return ""
@@ -108,18 +168,21 @@ func (c *Config) RemoveRuntime(name string) error {
 
 	config := *c.Tree
 
-	if err := config.DeletePath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "runtimes", name}); err != nil {
+	runtimePath := c.getPluginPath(name)
+	if err := config.DeletePath(runtimePath); err != nil {
 		return err
 	}
-	if runtime, ok := config.GetPath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "default_runtime_name"}).(string); ok {
+
+	defaultRuntimePath := c.getDefaultRuntimePath()
+	if runtime, ok := config.GetPath(defaultRuntimePath).(string); ok {
 		if runtime == name {
-			if err := config.DeletePath([]string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "default_runtime_name"}); err != nil {
+			if err := config.DeletePath(defaultRuntimePath); err != nil {
 				return err
 			}
 		}
 	}
 
-	runtimePath := []string{"plugins", "io.containerd.grpc.v1.cri", "containerd", "runtimes", name}
+	// Clean up empty parent paths
 	for i := 0; i < len(runtimePath); i++ {
 		if runtimes, ok := config.GetPath(runtimePath[:len(runtimePath)-i]).(*toml.Tree); ok {
 			if len(runtimes.Keys()) == 0 {
