@@ -60,20 +60,41 @@ func (l *vfiolib) GetAllDeviceSpecs() ([]specs.Device, error) {
 		return nil, fmt.Errorf("failed getting NVIDIA GPUs: %w", err)
 	}
 
+	path := "/dev/vfio"
+	devName := ""
+
 	for idx, dev := range devices {
 		if dev.Driver == "vfio-pci" {
 			klog.Infof("Found NVIDIA device: address=%s, driver=%s, iommu_group=%d, deviceId=%x",
 				dev.Address, dev.Driver, dev.IommuGroup, dev.Device)
-			deviceSpecs = append(deviceSpecs, specs.Device{
-				Name: fmt.Sprintf("%d", idx),
-				ContainerEdits: specs.ContainerEdits{
-					DeviceNodes: []*specs.DeviceNode{
-						{
-							Path: fmt.Sprintf("/dev/vfio/%d", dev.IommuGroup),
-						},
+
+			if dev.IommuFD != "" {
+				path = "/dev/vfio/devices"
+				devName = dev.IommuFD
+			} else {
+				devName = fmt.Sprintf("%d", dev.IommuGroup)
+			}
+			cedits := specs.ContainerEdits{
+				DeviceNodes: []*specs.DeviceNode{
+					{
+						Path: fmt.Sprintf("%s/%s", path, devName),
 					},
 				},
+			}
+			deviceSpecs = append(deviceSpecs, specs.Device{
+				Name:           fmt.Sprintf("%d", idx),
+				ContainerEdits: cedits,
 			})
+			deviceSpecs = append(deviceSpecs, specs.Device{
+				Name:           fmt.Sprintf("%d", dev.IommuGroup),
+				ContainerEdits: cedits,
+			})
+			if dev.IommuFD != "" {
+				deviceSpecs = append(deviceSpecs, specs.Device{
+					Name:           fmt.Sprintf("%s", dev.IommuFD),
+					ContainerEdits: cedits,
+				})
+			}
 		}
 	}
 

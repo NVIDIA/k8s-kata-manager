@@ -5,7 +5,7 @@ go 1.24.0
 toolchain go1.24.9
 
 require (
-	github.com/NVIDIA/go-nvlib v0.8.1
+	github.com/NVIDIA/go-nvlib v0.8.2-0.20251124190111-9a6788d93d8c
 	github.com/NVIDIA/nvidia-container-toolkit v1.18.0
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/pelletier/go-toml v1.9.5
