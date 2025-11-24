@@ -29,6 +29,12 @@ import (
 
 type vfiolib nvcdilib
 
+const (
+	VfioPath        = "/dev/vfio"
+	VfioDevicesPath = "/dev/vfio/devices"
+	VfioDriver      = "vfio-pci"
+)
+
 var _ nvcdi.Interface = (*vfiolib)(nil)
 
 // GetSpec returns the complete CDI spec
@@ -60,20 +66,49 @@ func (l *vfiolib) GetAllDeviceSpecs() ([]specs.Device, error) {
 		return nil, fmt.Errorf("failed getting NVIDIA GPUs: %w", err)
 	}
 
+	path := VfioPath
+	devName := ""
+
 	for idx, dev := range devices {
-		if dev.Driver == "vfio-pci" {
+		if dev.Driver == VfioDriver {
 			klog.Infof("Found NVIDIA device: address=%s, driver=%s, iommu_group=%d, deviceId=%x",
 				dev.Address, dev.Driver, dev.IommuGroup, dev.Device)
-			deviceSpecs = append(deviceSpecs, specs.Device{
-				Name: fmt.Sprintf("%d", idx),
-				ContainerEdits: specs.ContainerEdits{
-					DeviceNodes: []*specs.DeviceNode{
-						{
-							Path: fmt.Sprintf("/dev/vfio/%d", dev.IommuGroup),
-						},
+
+			if dev.IommuFD != "" {
+				path = VfioDevicesPath
+				devName = dev.IommuFD
+			} else {
+				devName = fmt.Sprintf("%d", dev.IommuGroup)
+			}
+			cedits := specs.ContainerEdits{
+				DeviceNodes: []*specs.DeviceNode{
+					{
+						Path: fmt.Sprintf("%s/%s", path, devName),
 					},
 				},
+			}
+			// Add the same device multiple times with keys for meant for
+			// various use cases:
+			// key=idx: use case where cdi annotations are manually put
+			//   on pod spec e.g. 0,1,2 etc
+			// key=IommuGroup e.g. 65 for /dev/vfio/65 in non-iommufd setup
+			//   and legacy device plugin case
+			// key=IommuFD e.g. vfio0 for /dev/vfio/devices/vfio0 for
+			//   iommufd support
+			deviceSpecs = append(deviceSpecs, specs.Device{
+				Name:           fmt.Sprintf("%d", idx),
+				ContainerEdits: cedits,
 			})
+			deviceSpecs = append(deviceSpecs, specs.Device{
+				Name:           fmt.Sprintf("%d", dev.IommuGroup),
+				ContainerEdits: cedits,
+			})
+			if dev.IommuFD != "" {
+				deviceSpecs = append(deviceSpecs, specs.Device{
+					Name:           fmt.Sprintf("%s", dev.IommuFD),
+					ContainerEdits: cedits,
+				})
+			}
 		}
 	}
 
