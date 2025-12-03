@@ -105,7 +105,7 @@ func (l *vfiolib) GetAllDeviceSpecs() ([]specs.Device, error) {
 			})
 			if dev.IommuFD != "" {
 				deviceSpecs = append(deviceSpecs, specs.Device{
-					Name:           fmt.Sprintf("%s", dev.IommuFD),
+					Name:           dev.IommuFD,
 					ContainerEdits: cedits,
 				})
 			}
