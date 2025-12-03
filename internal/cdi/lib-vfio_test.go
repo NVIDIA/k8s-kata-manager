@@ -62,6 +62,57 @@ func TestGetAllDeviceSpecs(t *testing.T) {
 			expectedDeviceSpecs: nil,
 		},
 		{
+			description: "one IommuFD NVIDIA device, bound to vfio-pci",
+			lib: &vfiolib{
+				nvpcilib: &nvpciInterfaceMock{
+					GetGPUsFunc: func() ([]*nvpci.NvidiaPCIDevice, error) {
+						devices := []*nvpci.NvidiaPCIDevice{
+							{
+								Address:    "000:3B:00.0",
+								Device:     0x2331,
+								IommuGroup: 60,
+								IommuFD:    "vfio0",
+								Driver:     "vfio-pci",
+							},
+						}
+						return devices, nil
+					},
+				},
+			},
+			expectedDeviceSpecs: []specs.Device{
+				{
+					Name: "0",
+					ContainerEdits: specs.ContainerEdits{
+						DeviceNodes: []*specs.DeviceNode{
+							{
+								Path: "/dev/vfio/devices/vfio0",
+							},
+						},
+					},
+				},
+				{
+					Name: "60",
+					ContainerEdits: specs.ContainerEdits{
+						DeviceNodes: []*specs.DeviceNode{
+							{
+								Path: "/dev/vfio/devices/vfio0",
+							},
+						},
+					},
+				},
+				{
+					Name: "vfio0",
+					ContainerEdits: specs.ContainerEdits{
+						DeviceNodes: []*specs.DeviceNode{
+							{
+								Path: "/dev/vfio/devices/vfio0",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			description: "one NVIDIA device, bound to vfio-pci",
 			lib: &vfiolib{
 				nvpcilib: &nvpciInterfaceMock{
@@ -81,6 +132,16 @@ func TestGetAllDeviceSpecs(t *testing.T) {
 			expectedDeviceSpecs: []specs.Device{
 				{
 					Name: "0",
+					ContainerEdits: specs.ContainerEdits{
+						DeviceNodes: []*specs.DeviceNode{
+							{
+								Path: "/dev/vfio/60",
+							},
+						},
+					},
+				},
+				{
+					Name: "60",
 					ContainerEdits: specs.ContainerEdits{
 						DeviceNodes: []*specs.DeviceNode{
 							{
@@ -117,6 +178,16 @@ func TestGetAllDeviceSpecs(t *testing.T) {
 			expectedDeviceSpecs: []specs.Device{
 				{
 					Name: "0",
+					ContainerEdits: specs.ContainerEdits{
+						DeviceNodes: []*specs.DeviceNode{
+							{
+								Path: "/dev/vfio/60",
+							},
+						},
+					},
+				},
+				{
+					Name: "60",
 					ContainerEdits: specs.ContainerEdits{
 						DeviceNodes: []*specs.DeviceNode{
 							{
@@ -162,7 +233,27 @@ func TestGetAllDeviceSpecs(t *testing.T) {
 					},
 				},
 				{
+					Name: "60",
+					ContainerEdits: specs.ContainerEdits{
+						DeviceNodes: []*specs.DeviceNode{
+							{
+								Path: "/dev/vfio/60",
+							},
+						},
+					},
+				},
+				{
 					Name: "1",
+					ContainerEdits: specs.ContainerEdits{
+						DeviceNodes: []*specs.DeviceNode{
+							{
+								Path: "/dev/vfio/90",
+							},
+						},
+					},
+				},
+				{
+					Name: "90",
 					ContainerEdits: specs.ContainerEdits{
 						DeviceNodes: []*specs.DeviceNode{
 							{
