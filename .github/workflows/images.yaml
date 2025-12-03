@@ -100,8 +100,8 @@ jobs:
         env:
           MULTIARCH_IMAGE: ghcr.io/${{ env.LOWERCASE_REPO_OWNER }}/k8s-kata-manager:${{ env.COMMIT_SHORT_SHA }}
         run: |
-          docker manifest create \
-            ${MULTIARCH_IMAGE} \
+          docker buildx imagetools create \
+            --tag ${MULTIARCH_IMAGE} \
             ghcr.io/${{ env.LOWERCASE_REPO_OWNER }}/k8s-kata-manager:${{ env.COMMIT_SHORT_SHA }}-amd64 \
             ghcr.io/${{ env.LOWERCASE_REPO_OWNER }}/k8s-kata-manager:${{ env.COMMIT_SHORT_SHA }}-arm64
-          docker manifest push ${MULTIARCH_IMAGE}
+
