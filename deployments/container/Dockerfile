@@ -15,7 +15,7 @@
 ARG GOLANG_VERSION=x.x.x
 ARG VERSION="N/A"
 
-FROM nvcr.io/nvidia/cuda:12.9.1-base-ubi9 as build
+FROM nvcr.io/nvidia/cuda:13.1.0-base-ubi9 as build
 
 RUN yum install -y wget make git gcc
 
