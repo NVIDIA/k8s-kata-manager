@@ -43,7 +43,7 @@ ARG VERSION="N/A"
 ARG GIT_COMMIT="unknown"
 RUN make PREFIX=/artifacts cmds
 
-FROM nvcr.io/nvidia/distroless/go:v3.2.1-dev
+FROM nvcr.io/nvidia/distroless/go:v3.2.2-dev
 
 USER 0:0
 
