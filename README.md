@@ -1,5 +1,7 @@
 # K8s-Kata-manager
 
+## Note: This project stands 'Deprecated'. Use release tag 'v0.2.3' or prior if backward compatibility is needed for older versions of other tools.
+
 ## Introduction
 
 The ``k8s-kata-manager`` project provides tools for configuring Kata runtime classes with OCI container runtimes on Kubernetes.
