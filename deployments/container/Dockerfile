@@ -14,6 +14,6 @@
 
 # This Dockerfile is also used to define the golang version used in this project
 # This allows dependabot to manage this version in addition to other images.
-FROM nvcr.io/nvidia/distroless/cc:v4.0.0-dev
+FROM nvcr.io/nvidia/distroless/cc:v4.0.1-dev
 
 ENTRYPOINT ["/busybox/sh", "-c", "while true; do sleep 86400; done"]
