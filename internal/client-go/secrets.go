@@ -18,8 +18,10 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	api "github.com/NVIDIA/k8s-kata-manager/api/v1alpha1/config"
 	utils "github.com/NVIDIA/k8s-kata-manager/internal/utils"
@@ -62,9 +64,27 @@ func (k *k8scli) GetCredentials(ctx context.Context, rc api.RuntimeClass) (*auth
 		return nil, fmt.Errorf("error parsing registry: %w", err)
 	}
 
-	creds := &auth.Credential{
-		Username: auths.Registries[Registry].Username,
-		Password: auths.Registries[Registry].Password,
+	regCreds := auths.Registries[Registry]
+	creds := &auth.Credential{}
+
+	// Try to use username/password first
+	if regCreds.Username != "" && regCreds.Password != "" {
+		creds.Username = regCreds.Username
+		creds.Password = regCreds.Password
+	} else if regCreds.Auth != "" {
+		// Fall back to base64 encoded auth string
+		decoded, err := base64.StdEncoding.DecodeString(regCreds.Auth)
+		if err != nil {
+			return nil, fmt.Errorf("error decoding auth string: %w", err)
+		}
+		// Auth string is in format "username:password"
+		parts := strings.SplitN(string(decoded), ":", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid auth string format: expected 'username:password'")
+		}
+		creds.Username = parts[0]
+		creds.Password = parts[1]
 	}
+
 	return creds, nil
 }
