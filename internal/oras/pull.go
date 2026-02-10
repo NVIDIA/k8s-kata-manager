@@ -19,6 +19,7 @@ package oras
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"strings"
 
 	utils "github.com/NVIDIA/k8s-kata-manager/internal/utils"
@@ -93,6 +94,19 @@ func (a *Artifact) Pull(ctx context.Context, creds *auth.Credential) (ocispec.De
 		}
 	}
 
-	// Copy from the remote repository to the file store
-	return oras.Copy(ctx, repo, a.Tag, fs, a.Tag, oras.DefaultCopyOptions)
+	// Try to copy with platform-specific options first
+	copyOpts := oras.DefaultCopyOptions
+	copyOpts.WithTargetPlatform(&ocispec.Platform{
+		Architecture: runtime.GOARCH,
+		OS:           runtime.GOOS,
+	})
+
+	desc, err := oras.Copy(ctx, repo, a.Tag, fs, a.Tag, copyOpts)
+	if err != nil {
+		// If platform-specific copy fails, fall back to default options
+		// This handles cases where the manifest doesn't specify a platform
+		return oras.Copy(ctx, repo, a.Tag, fs, a.Tag, oras.DefaultCopyOptions)
+	}
+
+	return desc, nil
 }
