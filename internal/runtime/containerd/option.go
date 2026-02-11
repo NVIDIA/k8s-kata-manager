@@ -116,10 +116,12 @@ func loadConfig(config string) (*Config, error) {
 		return nil, err
 	}
 
-	klog.Infof("Successfully loaded config")
-
 	cfg := Config{
 		Tree: tomlConfig,
 	}
+
+	version := cfg.getVersion()
+	klog.Infof("Successfully loaded containerd config (version %d)", version)
+
 	return &cfg, nil
 }
