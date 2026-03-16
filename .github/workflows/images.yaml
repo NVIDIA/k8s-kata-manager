@@ -31,7 +31,7 @@ jobs:
           - arm64
     runs-on: linux-${{ matrix.arch }}-cpu4
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         name: Check out code
       - name: Calculate build vars
         id: vars
@@ -70,7 +70,7 @@ jobs:
     needs: [ build ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         name: Check out code
       - name: Calculate build vars
         id: vars
