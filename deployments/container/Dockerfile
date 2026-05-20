@@ -12,8 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Build a static busybox layout: one binary plus applet symlinks (sh, rm,
+# ln, sleep, cat, ...) so PATH-resolved commands in init-container wrappers
+# and lifecycle hooks keep working on the non-*-dev* distroless base.
+FROM debian:trixie-slim AS shell
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends busybox-static \
+ && rm -rf /var/lib/apt/lists/* \
+ && mkdir /busybox \
+ && cp /bin/busybox /busybox/busybox \
+ && /busybox/busybox --install -s /busybox
+
 # This Dockerfile is also used to define the golang version used in this project
 # This allows dependabot to manage this version in addition to other images.
-FROM nvcr.io/nvidia/distroless/cc:v4.0.0-dev
+FROM nvcr.io/nvidia/distroless/cc:v4.0.6
+
+COPY --from=shell /busybox /busybox
+USER 0:0
+RUN ["/busybox/ln", "-s", "/busybox/sh", "/bin/sh"]
+ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/busybox
 
 ENTRYPOINT ["/busybox/sh", "-c", "while true; do sleep 86400; done"]
